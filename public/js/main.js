@@ -243,41 +243,6 @@ app.directive('mdPlaceInput', function(PlacesAutocompleteService, Map) {
 });
 
 
-// --- Services ---
-//
-app.factory('Map', function(BackboneEvents) {
-  var map = {
-    setMap: function(map) {
-      this._googleMap = map;
-      this.enter('ready');
-    },
-    getMap: function() { return this._googleMap; },
-    getBounds: function() { return this.getMap().getBounds(); }
-  };
-  _.extend(map, BackboneEvents);
-  return map;
-});
-
-
-app.value('PlacesAutocompleteService', new google.maps.places.AutocompleteService());
-
-
-app.factory('PlacesService', function(Map) {
-  var service = {
-    textSearch: function(request, callback) {
-      this._placesService.textSearch(request, callback);
-    },
-    getDetails: function(request, callback) {
-      this._placesService.getDetails(request, callback);
-    }
-  };
-  Map.inState('ready', function() {
-    service._placesService = new google.maps.places.PlacesService(Map.getMap());
-  });
-  return service;
-});
-
-
 app.directive('mdMapCanvas', function(Map) {
   return {
     link: function(scope, element, attrs) {
@@ -342,6 +307,73 @@ app.directive('mdMapCanvas', function(Map) {
 });
 
 
+app.directive('mdPlaceList', function() {
+  return {
+    controllerAs: 'MpPlaceListCtrl',
+    controller: function($scope, SearchedPlaces, SavedPlaces) {
+      var _this = this;
+
+      $scope.$watch(function() {
+        return SearchedPlaces.models;
+      }, function(newVal) {
+        _this.placeSearchResult = newVal;
+      });
+
+      $scope.$watch(function() {
+        return SavedPlaces.models;
+      }, function(newVal) {
+        _this.savedPlaces = newVal;
+      });
+
+      this.selectPlace = function($event, place) {
+        if (!$($event.target).hasClass('js-place-url')) {
+          SearchedPlaces.reset();
+          SavedPlaces.add(place);
+        }
+      };
+    },
+    link: function() {
+
+    }
+  };
+});
+
+
+// --- Services ---
+//
+app.factory('Map', function(BackboneEvents) {
+  var map = {
+    setMap: function(map) {
+      this._googleMap = map;
+      this.enter('ready');
+    },
+    getMap: function() { return this._googleMap; },
+    getBounds: function() { return this.getMap().getBounds(); }
+  };
+  _.extend(map, BackboneEvents);
+  return map;
+});
+
+
+app.value('PlacesAutocompleteService', new google.maps.places.AutocompleteService());
+
+
+app.factory('PlacesService', function(Map) {
+  var service = {
+    textSearch: function(request, callback) {
+      this._placesService.textSearch(request, callback);
+    },
+    getDetails: function(request, callback) {
+      this._placesService.getDetails(request, callback);
+    }
+  };
+  Map.inState('ready', function() {
+    service._placesService = new google.maps.places.PlacesService(Map.getMap());
+  });
+  return service;
+});
+
+
 app.factory('Place', function(Backbone, $rootScope) {
   return Backbone.Model.extend({
     initialize: function(attrs, options) {
@@ -376,126 +408,3 @@ app.factory('SavedPlaces', function(Backbone, Place) {
 
   return new SavedPlaces;
 });
-
-
-app.directive('mdPlaceList', function() {
-  return {
-    controllerAs: 'MpPlaceListCtrl',
-    controller: function($scope, SearchedPlaces, SavedPlaces) {
-      var _this = this;
-
-      $scope.$watch(function() {
-        return SearchedPlaces.models;
-      }, function(newVal) {
-        _this.placeSearchResult = newVal;
-      });
-
-      $scope.$watch(function() {
-        return SavedPlaces.models;
-      }, function(newVal) {
-        _this.savedPlaces = newVal;
-      });
-
-      this.selectPlace = function($event, place) {
-        if (!$($event.target).hasClass('js-place-url')) {
-          SearchedPlaces.reset();
-          SavedPlaces.add(place);
-        }
-      };
-    },
-    link: function() {
-
-    }
-  };
-});
-
-
-app.directive('mdPlaceDragDrop', function(SavedPlaces) {
-  return {
-    link: function(scope, element, attrs) {
-      var angularComment;
-
-      element.sortable({
-        items: '> .sortable',
-        handle: '.md-place-list-handle',
-        appendTo: 'body',
-        helper: 'clone',
-        start: function(event, ui) {
-          $('#js-drop-zone').css({display: 'block'});
-          // var allElements = element.contents();
-          // var itemIndex;
-          // allElements.each(function(index) {
-          //   if (this == ui.item[0]) itemIndex = index;
-          // });
-          // angularComment = allElements[itemIndex + 2];
-        },
-        update: function(event, ui) {
-          // element.children().each(function(i) {
-          //   $(this).scope().place.set({order: i});
-          // });
-          // // move the comment belongs to previous element to its place
-          // $( ui.item[0].previousSibling ).after( ui.item[0].nextSibling );
-          // // append comment belongs to sorted item after it
-          // ui.item.after(angularComment);
-        }
-      });
-
-      $('#js-drop-zone').droppable({
-        accept: '.md-place-list-item.sortable',
-        activate: function(e, ui) {
-          $(this).css('display', 'block').animate({opacity: 1}, 200);
-        },
-        deactivate: function(e, ui) {
-          $(this).animate({opacity: 0}, 200, function() {
-            $(this).css('display', 'none');
-          });
-        },
-        over: function(e, ui) {
-          $(this).css('color', 'red');
-        },
-        out: function(e, ui) {
-          $(this).css('color', '');
-        },
-        drop: function(e, ui) {
-          scope.$apply(function() {
-            SavedPlaces.remove(ui.draggable.scope().savedPlace);
-            var item = ui.draggable;
-            var contents = item.parent().contents();
-            var comment;
-            contents.each(function(i) {
-              if (this == item[0]) comment = contents[i+2];
-            });
-            p = item[0].parentNode;
-            p.removeChild(item[0]);
-            p.removeChild(comment);
-          });
-        }
-      });
-    }
-  };
-});
-
-
-app.animation('.md-place-list-item', function() {
-  return {
-    enter: function(element, done) {
-      var height = element.height();
-      element.css({
-        overflow: 'hidden',
-        minHeight: 0,
-        height: 0
-      })
-      .animate({height: height}, 400, function() {
-        element.css('min-height', 40);
-        done();
-      });
-    },
-
-    leave: function(element, done) {
-
-    },
-
-    move: function(element, done) {
-    }
-  };
-})
