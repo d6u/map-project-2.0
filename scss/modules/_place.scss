@@ -1,12 +1,17 @@
 .md-place {
-  &.saved-places {
-    border-bottom: 1px solid $blue;
-  }
+  position: relative;
+  overflow: hidden;
+}
+
+.md-place.saved-places {
+  border-bottom: 1px solid $blue;
 }
 
 .md-place-inner {
   position: relative;
   overflow: hidden;
+  background-color: #FFF;
+  width: 350px;
 }
 
 .md-place-handle {
@@ -75,4 +80,7 @@
   line-height: 80px;
   text-align: center;
   img { vertical-align: middle; }
+  &.ng-hide ~ .md-place-details {
+    margin-right: 0;
+  }
 }

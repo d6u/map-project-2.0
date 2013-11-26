@@ -35,12 +35,12 @@
     </div>
 
     <ol class="md-places" md-place-list>
-      <li class="md-place saved-places" ng-repeat="place in PanelCtrl.savedPlaces" md-place-entry></li>
+      <li class="md-place saved-places js-saved-place" ng-repeat="place in PanelCtrl.savedPlaces" md-place-entry></li>
     </ol>
 
     <ol class="md-searched-places" ng-show="PanelCtrl.searchedPlaces">
-      <li class="md-place search-result" ng-repeat="place in PanelCtrl.searchedPlaces">
-        <div class="md-place-picture">
+      <li class="md-place search-result" ng-repeat="place in PanelCtrl.searchedPlaces" ng-click="PanelCtrl.savePlace($event, place)">
+        <div class="md-place-picture" ng-show="place.has('cover_picture')">
           <img ng-src="{{place.get('cover_picture')}}">
         </div>
         <div class="md-place-details">
@@ -93,8 +93,24 @@
   </div>
 </div>
 </script>
-<script type="text/ng-template" id="saved-place-template">
 
+<script type="text/ng-template" id="saved-place-template">
+<div class="md-place-inner">
+  <label for="md-place-input-textarea" class="md-place-handle">
+    <i class="fa fa-plus" ng-show="place._loading == null"></i>
+    <i class="fa fa-refresh fa-spin" ng-show="place._loading"></i>
+  </label>
+  <div class="md-place-content">
+    <div class="md-place-picture" ng-show="place.has('cover_picture')">
+      <img ng-src="{{place.get('cover_picture')}}">
+    </div>
+    <div class="md-place-details">
+      <header class="md-place-name">{{place.get('name')}}</header>
+      <p class="md-place-address">{{place.get('short_address')}}</p>
+      <a ng-href="{{place.get('url')}}" target="_blank" class="md-place-url">Get more from Google</a>
+    </div>
+  </div>
+</div>
 </script>
 
 

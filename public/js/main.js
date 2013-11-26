@@ -96,12 +96,25 @@ app.controller('AppCtrl', function() {
 });
 
 
-app.controller('PanelCtrl', function($scope, SavedPlaces, SearchedPlaces) {
+app.controller('PanelCtrl', function($scope, SavedPlaces, SearchedPlaces, Place) {
   var _this = this;
+
   this.savedPlaces    = SavedPlaces.models;
+
   $scope.$watch(
     function()       { return SearchedPlaces.models;  },
     function(models) { _this.searchedPlaces = models; })
+
+  this.savePlace = function(event ,place) {
+    if (event.target.tagName != 'a') {
+      SearchedPlaces.reset();
+      var newPlace = SavedPlaces.last();
+      newPlace._input = false;
+      newPlace.set(place.attributes);
+      var placeInput = new Place(null, {_input: true});
+      SavedPlaces.add(placeInput);
+    }
+  };
 });
 
 
@@ -116,6 +129,19 @@ app.directive('mdPlaceEntry', function($compile, $templateCache) {
       var name = scope.place._input ? 'place-input-template' : 'saved-place-template';
       var template = $templateCache.get(name);
       element.html( $compile(template)(scope) );
+
+      scope.$watch('place._input', function(val) {
+        if (!val) {
+          var newChild     = $compile($templateCache.get('saved-place-template'))(scope);
+          var currentChild = element.children();
+          newChild.css({position: 'absolute', top: 0, left: 350});
+          element.append(newChild).animate({height: newChild.height()}, 200);
+          newChild.animate({left: 0}, 200);
+          currentChild.css('opacity', 1).animate({opacity: 0}, 200, function() {
+            currentChild.remove();
+          });
+        }
+      });
     }
   };
 });
