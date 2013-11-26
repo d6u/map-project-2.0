@@ -34,8 +34,21 @@
       </a>
     </div>
 
-    <ol class="md-places">
-      <li class="md-place" ng-repeat="place in PanelCtrl.savedPlaces" md-place-entry></li>
+    <ol class="md-places" md-place-list>
+      <li class="md-place saved-places" ng-repeat="place in PanelCtrl.savedPlaces" md-place-entry></li>
+    </ol>
+
+    <ol class="md-searched-places" ng-show="PanelCtrl.searchedPlaces">
+      <li class="md-place search-result" ng-repeat="place in PanelCtrl.searchedPlaces">
+        <div class="md-place-picture">
+          <img ng-src="{{place.get('cover_picture')}}">
+        </div>
+        <div class="md-place-details">
+          <header class="md-place-name">{{place.get('name')}}</header>
+          <p class="md-place-address">{{place.get('short_address')}}</p>
+          <a ng-href="{{place.get('url')}}" target="_blank" class="md-place-url">Get more from Google</a>
+        </div>
+      </li>
     </ol>
 
   </div><!-- /.ly-side-panel -->
@@ -68,7 +81,8 @@
 <script type="text/ng-template" id="place-input-template">
 <div class="md-place-inner">
   <label for="md-place-input-textarea" class="md-place-handle">
-    <i class="fa fa-plus"></i>
+    <i class="fa fa-plus" ng-show="place._loading == null"></i>
+    <i class="fa fa-refresh fa-spin" ng-show="place._loading"></i>
   </label>
   <div class="md-place-content">
     <div class="md-place-input" md-place-input>
@@ -97,6 +111,7 @@
 <script src="/js/angular-sanitize.min.js"></script>
 <script src="/js/angular-touch.min.js"></script>
 <script src="/js/main.js"></script>
+<script src="/js/main-animations.js"></script>
 
 <script>
   (function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=

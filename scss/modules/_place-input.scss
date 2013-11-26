@@ -35,6 +35,7 @@ $item-height: 40px;
 
 .md-place-input-hint {
   position: absolute;
+  z-index: -1;
   font-size: 18px;
   line-height: 24px;
   color: $gray4;
