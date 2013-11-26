@@ -4,6 +4,7 @@
 
 .md-place-inner {
   position: relative;
+  overflow: hidden;
 }
 
 .md-place-handle {
@@ -16,6 +17,7 @@
   font-size: 20px;
   text-align: center;
   cursor: pointer;
+  color: $blueDark;
 }
 
 .md-place-content {

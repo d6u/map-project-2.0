@@ -114,43 +114,112 @@ app.directive('mdPlaceEntry', function($compile, $templateCache) {
 });
 
 
-app.directive('mdPlaceInput', function() {
+app.directive('mdPlaceInput', function(PlacesAutocompleteService, Map) {
   return function(scope, element, attrs) {
     var textarea = element.children('.md-place-input-textarea');
     var shadow   = element.children('.md-place-input-shadow');
     var hint     = element.children('.md-place-input-hint');
+    var textareaEnd;
 
-    function updateTextareaHeight(extra) {
+    // return {} with textarea ending position left and lineCount value
+    //
+    function getTextareaEndingPosition(extra) {
       var contents = extra ? (textarea.val() + extra).split(/\n/)
                            : textarea.val().split(/\n/);
-      var span, hintLeft;
+      var span, left;
       var lineCount = 0;
 
       shadow.empty();
       for (var i = 0; i < contents.length; i++) {
         span = $('<span>');
-        span.html(contents[i].replace(/ /g, '&nbsp;'));
+        span.html(contents[i].replace(/ $/g, '&nbsp;'));
         shadow.append(span, $('<br>'));
         var rects = span[0].getClientRects();
         lineCount += rects.length;
-        hintLeft = rects.length ? rects[rects.length - 1].width : 0;
+        left = rects.length ? rects[rects.length - 1].width : 0;
       }
       textarea.attr('rows', (shadow.height() / 24) || 1);
 
-      updateHintPosition(
-        lineCount ? 8 + (lineCount - 1) * 24 : 8
-        , hintLeft);
+      return {
+        lineCount: lineCount ? lineCount : 1,
+        left: left
+      }
     }
-    updateTextareaHeight();
 
-    function updateHintPosition(top, left) {
-      hint.css({top: top, left: left});
+    // return {} with hint beginning position left and lineCount value
+    //
+    function getHintBeginningPosition(textareaEnd, hintValue) {
+      hint.html(hintValue);
+      var hintHeight = hint.height();
+      if (hint.width() + textareaEnd.left > element.width() || hintHeight / 24 > 1) {
+        return {
+          lineCount: textareaEnd.lineCount + hintHeight / 24,
+          hintStartLine: textareaEnd.lineCount + 1,
+          left: 0
+        };
+      } else {
+        textareaEnd.hintStartLine = textareaEnd.lineCount;
+        return textareaEnd;
+      }
+    }
+
+    function updateHint(val) {
+      if (val) {
+        PlacesAutocompleteService.getQueryPredictions(
+          {bounds: Map.getBounds(), input: val},
+          function(prediction, status) {
+            if (status === google.maps.places.PlacesServiceStatus.OK) {
+              displayHint(val, prediction[0]);
+            } else {
+              hint.empty();
+            }
+          });
+      } else {
+        hint.empty();
+      }
+    }
+
+    function displayHint(v, p) {
+      var nextTerm = p.description;
+      if (nextTerm && nextTerm != textarea.val()) {
+        var position = getHintBeginningPosition(textareaEnd, nextTerm);
+        textarea.attr('rows', position.lineCount);
+        hint.css({
+          top: 8 + (position.hintStartLine - 1) * 24,
+          left: position.left});
+      } else {
+        hint.empty();
+      }
+    }
+
+    function hintAutocomplete() {
+      if (hint.html()) {
+        textarea.val(hint.html());
+        hint.empty();
+      }
+    }
+
+    function updateTextareaHeight(extra) {
+      textareaEnd = getTextareaEndingPosition(extra);
+      textarea.attr('rows', textareaEnd.lineCount);
     }
 
     textarea.on('keydown', function(e) {
       switch (e.keyCode) {
+        case 8:
+          hint.empty();
+          break;
+        case 9:
+          hintAutocomplete();
+          e.preventDefault();
+          break;
         case 13:
           updateTextareaHeight("\n");
+          break;
+        case 37:
+        case 38:
+        case 39:
+        case 40:
           break;
         default:
           updateTextareaHeight(String.fromCharCode(e.keyCode));
@@ -158,7 +227,11 @@ app.directive('mdPlaceInput', function() {
     });
 
     textarea.on('keyup', function(e) {
-      updateTextareaHeight();
+      switch (e.keyCode) {
+        default:
+          updateTextareaHeight();
+          updateHint(textarea.val());
+      }
     });
 
     textarea.on('paste', function(e) {
@@ -171,6 +244,7 @@ app.directive('mdPlaceInput', function() {
 
 
 // --- Services ---
+//
 app.factory('Map', function(BackboneEvents) {
   var map = {
     setMap: function(map) {
@@ -183,6 +257,9 @@ app.factory('Map', function(BackboneEvents) {
   _.extend(map, BackboneEvents);
   return map;
 });
+
+
+app.value('PlacesAutocompleteService', new google.maps.places.AutocompleteService());
 
 
 app.factory('PlacesService', function(Map) {
@@ -422,16 +499,3 @@ app.animation('.md-place-list-item', function() {
     }
   };
 })
-
-
-app.value('PlacesAutocompleteService', new google.maps.places.AutocompleteService());
-
-
-app.directive('cpPlaceListInputLabel', function() {
-  return function(scope, element, attrs) {
-    element.on('click', function(e) {
-      element.parent().next().find('.js-textarea-input').focus();
-      e.preventDefault();
-    });
-  };
-});
