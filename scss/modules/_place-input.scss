@@ -1,0 +1,41 @@
+.md-place-input {
+  position: relative;
+}
+
+$item-height: 40px;
+
+%md-place-input-text-style {
+  width: 100%;
+  min-height: $item-height - 8px * 2;
+  margin: 0;
+  padding: 8px 0;
+  border: 0;
+  font-size: 18px;
+  line-height: 24px;
+  font-family: 'Lucida Grande';
+}
+
+.md-place-input-shadow {
+  @extend %md-place-input-text-style;
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  word-wrap: break-word;
+  opacity: 0;
+}
+
+.md-place-input-textarea {
+  @extend %md-place-input-text-style;
+  display: block;
+  resize: none;
+  outline: none;
+  background-color: transparent;
+}
+
+.md-place-input-hint {
+  position: absolute;
+  font-size: 18px;
+  line-height: 24px;
+  color: $gray4;
+}

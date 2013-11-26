@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title></title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css/font-awesome.min.css">
+  <link rel="stylesheet" href="css/main.css">
+  <script src="/js/modernizr-2.6.2.min.js"></script>
+</head>
+<body ng-app="mapApp">
+<!--[if lt IE 7]>
+  <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+<![endif]-->
+
+
+<div class="ly-app" ng-controller="AppCtrl as AppCtrl">
+  <div md-map-canvas class="ly-map-canvas"></div>
+
+  <!-- Side Panel -->
+  <div class="ly-side-panel" ng-controller="PanelCtrl as PanelCtrl">
+
+    <div class="md-toolbar">
+      <a href class="md-toolbar-button left" ng-click="AppCtrl.showDirectionModal = true">
+        <i class="fa fa-location-arrow"></i>
+      </a>
+      <a href class="md-toolbar-button right">
+        <i class="fa fa-share-square"></i>
+      </a>
+    </div>
+
+    <ol class="md-places">
+      <li class="md-place" ng-repeat="place in PanelCtrl.savedPlaces" md-place-entry></li>
+    </ol>
+
+  </div><!-- /.ly-side-panel -->
+
+
+  <div class="cp-modal" ng-class="{show: AppCtrl.showDirectionModal}">
+    <div class="cp-modal-content">
+      <div class="md-direction-options-modal">
+        <div class="md-direction-modal-blocks">
+          <div class="md-direction-modal-option-block">
+            <a href class="md-direction-modal-option-block-button"></a>
+          </div>
+          <div class="md-direction-modal-option-block">
+            <a href class="md-direction-modal-option-block-button"></a>
+          </div>
+          <div class="md-direction-modal-option-block">
+            <a href class="md-direction-modal-option-block-button"></a>
+          </div>
+        </div>
+        <div class="md-direction-modal-footer">
+          <a href class="md-direction-modal-footer-button" ng-click="AppCtrl.showDirectionModal = false">Cancel</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cp-modal-overlay" ng-click="AppCtrl.showDirectionModal = false"></div>
+</div>
+
+
+<script type="text/ng-template" id="place-input-template">
+<div class="md-place-inner">
+  <label for="md-place-input-textarea" class="md-place-handle">
+    <i class="fa fa-plus"></i>
+  </label>
+  <div class="md-place-content">
+    <div class="md-place-input" md-place-input>
+      <div class="md-place-input-shadow"></div>
+      <div class="md-place-input-hint">hint</div>
+      <textarea id="md-place-input-textarea" class="md-place-input-textarea" rows="1"></textarea>
+    </div>
+  </div>
+</div>
+</script>
+<script type="text/ng-template" id="saved-place-template">
+
+</script>
+
+
+<script src="//maps.googleapis.com/maps/api/js?key=AIzaSyAGJjfEZSf93ey42aqJDIVuOVaLnpUUzWs&libraries=places&sensor=true" type="text/javascript"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery-1.10.2.min.js"><\/script>')</script>
+<script src="/js/jquery-ui-1.10.3.custom.min.js"></script>
+<script src="/js/lodash.compat.min.js"></script>
+<script src="/js/backbone-min.js"></script>
+<script src="/js/angular.min.js"></script>
+<script src="/js/angular-animate.min.js"></script>
+<script src="/js/angular-route.min.js"></script>
+<script src="/js/angular-cookies.min.js"></script>
+<script src="/js/angular-sanitize.min.js"></script>
+<script src="/js/angular-touch.min.js"></script>
+<script src="/js/main.js"></script>
+
+<script>
+  (function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=
+  function(){(b[l].q=b[l].q||[]).push(arguments)});b[l].l=+new Date;
+  e=o.createElement(i);r=o.getElementsByTagName(i)[0];
+  e.src='//www.google-analytics.com/analytics.js';
+  r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));
+  ga('create','UA-XXXXX-X');ga('send','pageview');
+</script>
+</body>
+</html>

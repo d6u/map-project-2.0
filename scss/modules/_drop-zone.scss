@@ -1,0 +1,20 @@
+.md-drop-zone {
+  background-color: rgba(0,0,0,.4);
+  font-size: 112px;
+  vertical-align: middle;
+  text-align: center;
+  color: #FFF;
+  display: none;
+  opacity: 0;
+  &::before {
+    content: '';
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+    margin-right: -0.25em; // Adjusts for spacing
+  }
+  i {
+    display: inline-block;
+    vertical-align: middle;
+  }
+}

@@ -1,0 +1,42 @@
+html, body, .ly-app {
+  height: 100%;
+}
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.ly-app {
+  position: relative;
+  overflow: hidden;
+}
+
+$panel-width: 350px;
+
+.ly-map-canvas {
+  overflow: hidden;
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: $panel-width;
+  right: 0;
+  bottom: 0;
+}
+
+.ly-side-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: $panel-width;
+  z-index: 1000;
+}
+
+.ly-drop-zone {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: $panel-width;
+  z-index: 100; // higher than map canvas
+}

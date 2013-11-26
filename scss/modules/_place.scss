@@ -1,0 +1,24 @@
+.md-place {
+  border-bottom: 1px solid $blue;
+}
+
+.md-place-inner {
+  position: relative;
+}
+
+.md-place-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  line-height: 40px;
+  font-size: 20px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.md-place-content {
+  margin-left: 40px;
+  margin-right: 20px;
+}
