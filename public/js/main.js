@@ -93,13 +93,16 @@ var app = angular.module('mapApp', ['ngBackbone', 'ngAnimate']);
 //
 app.controller('AppCtrl', function() {
   this.showDirectionModal = false;
+  this.showDropzone       = true;
 });
 
 
 app.controller('PanelCtrl', function($scope, SavedPlaces, SearchedPlaces, Place) {
   var _this = this;
 
-  this.savedPlaces    = SavedPlaces.models;
+  $scope.$watch(
+    function()       { return SavedPlaces.models;  },
+    function(models) { _this.savedPlaces = models; })
 
   $scope.$watch(
     function()       { return SearchedPlaces.models;  },
@@ -135,8 +138,12 @@ app.directive('mdPlaceEntry', function($compile, $templateCache) {
           var newChild     = $compile($templateCache.get('saved-place-template'))(scope);
           var currentChild = element.children();
           newChild.css({position: 'absolute', top: 0, left: 350});
-          element.append(newChild).animate({height: newChild.height()}, 200);
-          newChild.animate({left: 0}, 200);
+          element.append(newChild).animate({height: newChild.height()}, 200, function() {
+            element.css({height: ''});
+          });
+          newChild.animate({left: 0}, 200, function() {
+            newChild.css({position: ''});
+          });
           currentChild.css('opacity', 1).animate({opacity: 0}, 200, function() {
             currentChild.remove();
           });
@@ -342,12 +349,13 @@ app.directive('mdMapCanvas', function(Map) {
 });
 
 
-app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces) {
+app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedPlaces) {
   return {
     controllerAs: 'MpPlaceListCtrl',
     controller: function($scope) {
     },
     link: function(scope, element, attrs, Ctrl) {
+      // listen to keyup to fetch rearch results
       element.on('keyup', function(e) {
         var target = $(e.target);
         var query = target.val();
@@ -365,6 +373,63 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces) {
           );
         } else {
           scope.$apply(function() { SearchedPlaces.reset(); });
+        }
+      });
+
+      // sortable items
+      var contents;
+      element.sortable({
+        appendTo: '.ly-app',
+        cursor: 'move',
+        handle: '.md-place-handle',
+        opacity: '.6',
+        placeholder: 'md-place-sort-placeholder',
+        start: function() {
+          scope.$apply(function() { scope.AppCtrl.showDropzone = true; });
+          contents = element.contents();
+          var placeholder = element.sortable('option','placeholder');
+          if (placeholder && placeholder.element) {
+            contents = contents.not(
+              element.find(
+                "." + placeholder.element()
+                                 .attr('class')
+                                 .split(/\s+/).join('.')
+              ));
+          }
+        },
+        update: function(event, ui) {
+          if (!scope.AppCtrl.droppedItem) {
+            console.log('update');
+          }
+        },
+        stop: function(event, ui) {
+          element.sortable('cancel');
+          contents.detach().appendTo(element);
+          if (scope.AppCtrl.droppedItem) {
+            scope.$apply(function() {
+              SavedPlaces.remove(scope.AppCtrl.droppedItem.scope().place);
+            });
+          }
+          scope.$apply(function() { scope.AppCtrl.showDropzone = false; });
+        }
+      });
+
+      scope.$watch('PanelCtrl.savedPlaces.length', function() {
+        element.sortable('refresh');
+      });
+    }
+  };
+});
+
+
+app.directive('mdDropZone', function($timeout) {
+  return {
+    link: function(scope, element, attrs) {
+      element.droppable({
+        accept: '.js-saved-place',
+        hoverClass: 'md-drop-zone-hover',
+        drop: function(event, ui) {
+          scope.AppCtrl.droppedItem = ui.draggable;
         }
       });
     }

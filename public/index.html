@@ -53,6 +53,10 @@
 
   </div><!-- /.ly-side-panel -->
 
+  <!-- Drop Zone -->
+  <div class="ly-drop-zone md-drop-zone" ng-show="AppCtrl.showDropzone" md-drop-zone>
+    <i class="fa fa-trash-o"></i>
+  </div><!-- /.ly-drop-zone -->
 
   <div class="cp-modal" ng-class="{show: AppCtrl.showDirectionModal}">
     <div class="cp-modal-content">
@@ -97,8 +101,7 @@
 <script type="text/ng-template" id="saved-place-template">
 <div class="md-place-inner">
   <label for="md-place-input-textarea" class="md-place-handle">
-    <i class="fa fa-plus" ng-show="place._loading == null"></i>
-    <i class="fa fa-refresh fa-spin" ng-show="place._loading"></i>
+    <i class="fa fa-check"></i>
   </label>
   <div class="md-place-content">
     <div class="md-place-picture" ng-show="place.has('cover_picture')">

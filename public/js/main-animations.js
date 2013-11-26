@@ -35,7 +35,8 @@ app.animation('.js-saved-place', function() {
       });
     },
     leave: function(element, done) {
-      element.children().animate({left: -350}, 200, done);
+      element.children().animate({left: -350}, 200);
+      element.animate({height: 0}, 200, done);
     }
   };
 });
