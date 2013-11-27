@@ -1,11 +1,23 @@
 .md-drop-zone {
-  background-color: rgba(0,0,0,.4);
-  font-size: 112px;
-  vertical-align: middle;
-  text-align: center;
+  background-color: rgba(#000, .6);
+  @include transition();
+
+  &.ng-hide-add, &.ng-hide-remove {
+    opacity: 1;
+    visibility: visible;
+    display: block !important;
+  }
+
+  &.ng-hide {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  // content
+  //
   color: #FFF;
-  display: none;
-  opacity: 0;
+  text-align: center;
+
   &::before {
     content: '';
     display: inline-block;
@@ -13,8 +25,14 @@
     vertical-align: middle;
     margin-right: -0.25em; // Adjusts for spacing
   }
+
   i {
     display: inline-block;
     vertical-align: middle;
+    font-size: 112px;
+  }
+
+  &.md-drop-zone-hover {
+    color: $red;
   }
 }
