@@ -114,6 +114,7 @@ app.controller('PanelCtrl', function($scope, SavedPlaces, SearchedPlaces, Place)
       var newPlace = SavedPlaces.find(function(p) { return p._input; });
       newPlace._input = false;
       newPlace.set(place.attributes);
+      newPlace.createMarker();
       var placeInput = new Place(null, {_input: true});
       SavedPlaces.add(placeInput);
     }
@@ -483,7 +484,7 @@ app.factory('PlacesService', function(Map) {
 });
 
 
-app.factory('Place', function(Backbone, PlacesService, $rootScope) {
+app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
   return Backbone.Model.extend({
     initialize: function(attrs, options) {
       if (options && options._input) {
@@ -527,15 +528,41 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope) {
           'cover_picture',
           this.get('photos')[0].getUrl({maxWidth: 80, maxHeight: 80}));
       }
+    },
+    createMarker: function() {
+      this._marker = new google.maps.Marker({
+        cursor: 'pointer',
+        flat: false,
+        icon: '/img/location-icon-saved-place.png',
+        position: this.get('geometry').location,
+        map: Map.getMap(),
+        title: this.get('name')
+      });
     }
   });
 });
 
 
-app.factory('SearchedPlaces', function(Backbone, Place, PlacesService, $timeout) {
+app.factory('SearchedPlaces', function(Backbone, Place, Map, $timeout) {
   var SearchedPlaces = Backbone.Collection.extend({
     model: Place,
     initialize: function() {
+      this.on('add', function(place, options) {
+        place._marker = new google.maps.Marker({
+          cursor: 'pointer',
+          flat: false,
+          icon: '/img/location-icon-search-result.png',
+          position: place.get('geometry').location,
+          map: Map.getMap(),
+          title: place.get('name')
+        });
+        // bind hover infoWindow
+      });
+      this.on('reset', function(c, options) {
+        for (var i = 0; i < options.previousModels.length; i++) {
+          options.previousModels[i]._marker.setMap(null);
+        };
+      });
     }
   });
 
