@@ -444,6 +444,22 @@ app.directive('mdDropZone', function($timeout) {
 });
 
 
+app.directive('mdPlaceMouseover', function(Map) {
+  return function(scope, element, attrs) {
+    element.on('mouseenter', function(e) {
+      if (scope.place._marker) {
+        Map.showMouseoverInfoWindow(
+          scope.place._marker,
+          scope.place.get('name'));
+      }
+    });
+    element.on('mouseleave', function(e) {
+      Map.closeMouseoverInfoWindow();
+    });
+  };
+});
+
+
 // --- Services ---
 //
 app.factory('Map', function(BackboneEvents) {
