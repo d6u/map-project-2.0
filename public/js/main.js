@@ -93,7 +93,7 @@ var app = angular.module('mapApp', ['ngBackbone', 'ngAnimate']);
 //
 app.controller('AppCtrl', function() {
   this.showDirectionModal = false;
-  this.showDropzone       = true;
+  this.showDropzone       = false;
 });
 
 
@@ -111,7 +111,7 @@ app.controller('PanelCtrl', function($scope, SavedPlaces, SearchedPlaces, Place)
   this.savePlace = function(event ,place) {
     if (event.target.tagName != 'a') {
       SearchedPlaces.reset();
-      var newPlace = SavedPlaces.last();
+      var newPlace = SavedPlaces.find(function(p) { return p._input; });
       newPlace._input = false;
       newPlace.set(place.attributes);
       var placeInput = new Place(null, {_input: true});
@@ -384,7 +384,7 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
         handle: '.md-place-handle',
         opacity: '.6',
         placeholder: 'md-place-sort-placeholder',
-        start: function() {
+        start: function(event, ui) {
           scope.$apply(function() { scope.AppCtrl.showDropzone = true; });
           contents = element.contents();
           var placeholder = element.sortable('option','placeholder');
@@ -396,10 +396,11 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
                                  .split(/\s+/).join('.')
               ));
           }
+          ui.item._sortable = {initIndex: ui.item.index()};
         },
         update: function(event, ui) {
           if (!scope.AppCtrl.droppedItem) {
-            console.log('update');
+            ui.item._sortable.endIndex = ui.item.index();
           }
         },
         stop: function(event, ui) {
@@ -409,6 +410,11 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
             scope.$apply(function() {
               SavedPlaces.remove(scope.AppCtrl.droppedItem.scope().place);
             });
+            delete scope.AppCtrl.droppedItem;
+          } else if ('endIndex' in ui.item._sortable) {
+            var place = SavedPlaces.at(ui.item._sortable.initIndex);
+            SavedPlaces.remove(place);
+            SavedPlaces.add(place, {at: ui.item._sortable.endIndex});
           }
           scope.$apply(function() { scope.AppCtrl.showDropzone = false; });
         }
