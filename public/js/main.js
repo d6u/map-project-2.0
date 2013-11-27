@@ -447,13 +447,21 @@ app.directive('mdDropZone', function($timeout) {
 // --- Services ---
 //
 app.factory('Map', function(BackboneEvents) {
+  var mouseoverInfoWindow = new google.maps.InfoWindow();
   var map = {
     setMap: function(map) {
       this._googleMap = map;
       this.enter('ready');
     },
     getMap: function() { return this._googleMap; },
-    getBounds: function() { return this.getMap().getBounds(); }
+    getBounds: function() { return this.getMap().getBounds(); },
+    showMouseoverInfoWindow: function(marker, title) {
+      mouseoverInfoWindow.setContent(title);
+      mouseoverInfoWindow.open(this.getMap(), marker);
+    },
+    closeMouseoverInfoWindow: function() {
+      mouseoverInfoWindow.close();
+    }
   };
   _.extend(map, BackboneEvents);
   return map;
@@ -530,14 +538,21 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
       }
     },
     createMarker: function() {
+      var _this = this;
       this._marker = new google.maps.Marker({
         cursor: 'pointer',
         flat: false,
         icon: '/img/location-icon-saved-place.png',
         position: this.get('geometry').location,
-        map: Map.getMap(),
-        title: this.get('name')
+        map: Map.getMap()
       });
+      // bind mouseover infoWindow
+      this._marker.addListener('mouseover', function() {
+        Map.showMouseoverInfoWindow(_this._marker, _this.get('name'));
+      });
+      this._marker.addListener('mouseout', function() {
+        Map.closeMouseoverInfoWindow();
+      })
     }
   });
 });
@@ -553,10 +568,15 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, $timeout) {
           flat: false,
           icon: '/img/location-icon-search-result.png',
           position: place.get('geometry').location,
-          map: Map.getMap(),
-          title: place.get('name')
+          map: Map.getMap()
         });
-        // bind hover infoWindow
+        // bind mouseover infoWindow
+        place._marker.addListener('mouseover', function() {
+          Map.showMouseoverInfoWindow(place._marker, place.get('name'));
+        });
+        place._marker.addListener('mouseout', function() {
+          Map.closeMouseoverInfoWindow();
+        })
       });
       this.on('reset', function(c, options) {
         for (var i = 0; i < options.previousModels.length; i++) {
