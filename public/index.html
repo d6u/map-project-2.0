@@ -25,7 +25,7 @@
   <!-- Side Panel -->
   <div class="ly-side-panel" ng-controller="PanelCtrl as PanelCtrl">
 
-    <div class="md-toolbar">
+    <div class="md-toolbar" ng-class="{show: PanelCtrl.savedPlaces.length > 1}">
       <a href class="md-toolbar-button left" ng-click="AppCtrl.showDirectionModal = true">
         <i class="fa fa-location-arrow"></i>
       </a>
