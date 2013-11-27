@@ -35,11 +35,11 @@
     </div>
 
     <ol class="md-places" md-place-list>
-      <li class="md-place saved-places js-saved-place" ng-repeat="place in PanelCtrl.savedPlaces" md-place-entry></li>
+      <li class="md-place saved-places js-saved-place" ng-repeat="place in PanelCtrl.savedPlaces" md-place-entry md-place-mouseover></li>
     </ol>
 
     <ol class="md-searched-places" ng-show="PanelCtrl.searchedPlaces">
-      <li class="md-place search-result" ng-repeat="place in PanelCtrl.searchedPlaces" ng-click="PanelCtrl.savePlace($event, place)">
+      <li class="md-place search-result" ng-repeat="place in PanelCtrl.searchedPlaces" ng-click="PanelCtrl.savePlace($event, place)" md-place-mouseover>
         <div class="md-place-picture" ng-show="place.has('cover_picture')">
           <img ng-src="{{place.get('cover_picture')}}">
         </div>
