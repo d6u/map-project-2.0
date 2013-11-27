@@ -355,7 +355,7 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
     controller: function($scope) {
     },
     link: function(scope, element, attrs, Ctrl) {
-      // listen to keyup to fetch rearch results
+      // listen to keyup to fetch search results
       element.on('keyup', function(e) {
         var target = $(e.target);
         var query = target.val();
@@ -457,9 +457,14 @@ app.value('PlacesAutocompleteService', new google.maps.places.AutocompleteServic
 
 
 app.factory('PlacesService', function(Map) {
+  var textSearchTimer;
   var service = {
     textSearch: function(request, callback) {
-      this._placesService.textSearch(request, callback);
+      if (textSearchTimer) clearTimeout(textSearchTimer);
+      var _this = this;
+      textSearchTimer = setTimeout(function() {
+        _this._placesService.textSearch(request, callback);
+      }, 600);
     },
     getDetails: function(request, callback) {
       this._placesService.getDetails(request, callback);
