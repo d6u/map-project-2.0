@@ -737,16 +737,36 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService) {
   }
 
   function createRenderer(route) {
-    var renderer = new google.maps.Polyline({
-      strokeColor: randomColor(),
-      strokeWeight: 6,
-      strokeOpacity: 0.5,
-      path: route.routes[0].overview_path
-    });
+    var color = randomColor()
+    var legs  = route.routes[0].legs;
 
-    renderer.setMap(Map.getMap());
-    renderers.push(renderer);
-    return renderer;
+    _.forEach(route.routes[0].legs, function(leg) {
+      var steps = leg.steps;
+      var paths = [];
+      for (var j = 0; j < steps.length; j++) {
+        paths = paths.concat(steps[j].path);
+      }
+
+      var renderer = new google.maps.Polyline({
+        strokeColor:   color,
+        strokeWeight:  10,
+        strokeOpacity: 0.5,
+        path:          paths
+      });
+
+      renderer.addListener('mouseover', function() {
+        var anchor = new google.maps.MVCObject;
+        anchor.set('position', leg.end_location);
+        Map.showMouseoverInfoWindow(anchor, leg.duration.text);
+      });
+
+      renderer.addListener('mouseout', function() {
+        Map.closeMouseoverInfoWindow();
+      });
+
+      renderer.setMap(Map.getMap());
+      renderers.push(renderer);
+    });
   }
 
   function cleanRenders() {
