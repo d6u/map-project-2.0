@@ -425,6 +425,7 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
       element.sortable({
         appendTo: '.ly-app',
         cursor: 'move',
+        helper: 'clone',
         handle: '.md-place-handle',
         opacity: '.6',
         placeholder: 'md-place-sort-placeholder',
