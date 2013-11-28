@@ -546,6 +546,7 @@ app.factory('Map', function(BackboneEvents) {
     showMouseoverInfoWindow: function(marker, title) {
       var content = document.createElement('div');
       content.innerHTML = title;
+      content.style.lineHeight = '18px';
       mouseoverInfoWindow.setContent(content);
       mouseoverInfoWindow.open(this.getMap(), marker);
     },
