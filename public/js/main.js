@@ -726,10 +726,8 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService) {
   var colorCounter = 0;
 
   function randomColor() {
-    var colors = [
-      '1f77b4', 'ff7f0e' ,'ffbb78' ,'2ca02c' ,'98df8a' ,'d62728' ,'ff9896',
-      '9467bd', 'c5b0d5', '8c564b', 'c49c94', 'e377c2', 'f7b6d2', 'bcbd22',
-      'dbdb8d'];
+    var colors = ['1f77b4', 'ff7f0e', '2ca02c', 'd62728', '9467bd',
+                  '8c564b', 'e377c2', 'bcbd22', '17becf'];
     var color = colors[colorCounter++];
     if (!color) {
       colorCounter = -1;
@@ -738,18 +736,14 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService) {
     return color;
   }
 
-  function getOptions() {
-    return {
-      suppressMarkers: true,
-      suppressInfoWindows: true,
-      polylineOptions: {
-        strokeColor: randomColor()
-      }
-    };
-  }
+  function createRenderer(route) {
+    var renderer = new google.maps.Polyline({
+      strokeColor: randomColor(),
+      strokeWeight: 6,
+      strokeOpacity: 0.5,
+      path: route.routes[0].overview_path
+    });
 
-  function createRender() {
-    var renderer = new google.maps.DirectionsRenderer(getOptions());
     renderer.setMap(Map.getMap());
     renderers.push(renderer);
     return renderer;
@@ -774,7 +768,7 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService) {
         travelMode:  google.maps.TravelMode.DRIVING
       }, function(result, status) {
         if (status === google.maps.DirectionsStatus.OK) {
-          createRender().setDirections(result);
+          createRenderer(result);
           d.resolve();
         } else {
           d.resolve();
@@ -794,7 +788,7 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService) {
           travelMode:  google.maps.TravelMode.DRIVING
         }, function(result, status) {
           if (status === google.maps.DirectionsStatus.OK) {
-            createRender().setDirections(result);
+            createRenderer(result);
             d.resolve();
           } else {
             d.resolve();
