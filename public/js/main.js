@@ -99,12 +99,14 @@ angular.module('ngBootstrap', [])
     element.tooltip(options);
     element.on('click', function() {
       if (element.hasClass('search-result')) {
+        element.tooltip('destroy');
         $('body').children('.tooltip').remove();
       }
     });
     element.on('mousedown', function() {
       if (element.hasClass('md-place-handle')) {
         element.tooltip('destroy');
+        $('body').children('.tooltip').remove();
         element.one('mouseup', function() { element.tooltip(options); });
       }
     });
@@ -427,7 +429,9 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
         opacity: '.6',
         placeholder: 'md-place-sort-placeholder',
         start: function(event, ui) {
-          scope.$apply(function() { scope.AppCtrl.showDropzone = true; });
+          if (!ui.item.scope().place._input) {
+            scope.$apply(function() { scope.AppCtrl.showDropzone = true; });
+          }
           contents = element.contents();
           var placeholder = element.sortable('option','placeholder');
           if (placeholder && placeholder.element) {
