@@ -98,6 +98,10 @@ app.controller('AppCtrl', function($scope, SavedPlaces) {
 
   var _this = this;
 
+  this.showSavedPlaces = function() {
+    SavedPlaces.centerAllPlaces();
+  };
+
   $scope.$watch('AppCtrl.directionMode', function(val) {
     _this.showDirectionModal = false;
     SavedPlaces._directionMode = val;
@@ -469,6 +473,24 @@ app.directive('mdPlaceMouseover', function(Map) {
 });
 
 
+app.directive('mdMapControl', function() {
+  return {
+    controllerAs: 'MdMapControlCtrl',
+    controller: function(Map) {
+      this.zoomIn = function() {
+        Map.zoomIn();
+      };
+      this.zoomOut = function() {
+        Map.zoomOut();
+      };
+    },
+    link: function(scope, element, attrs) {
+
+    }
+  };
+});
+
+
 // --- Services ---
 //
 app.factory('Map', function(BackboneEvents) {
@@ -480,9 +502,19 @@ app.factory('Map', function(BackboneEvents) {
       this._googleMap = map;
       this.enter('ready');
     },
-    getMap: function() { return this._googleMap; },
-    getBounds: function() { return this.getMap().getBounds(); },
+    getMap:    function()       { return this._googleMap; },
+    getBounds: function()       { return this.getMap().getBounds(); },
     fitBounds: function(bounds) { this.getMap().fitBounds(bounds); },
+    getZoom:   function()       { return this.getMap().getZoom(); },
+    setZoom:   function(level)  { return this.getMap().setZoom(level); },
+    zoomIn: function() {
+      var map = this.getMap();
+      map.setZoom(map.getZoom() + 1);
+    },
+    zoomOut: function() {
+      var map = this.getMap();
+      map.setZoom(map.getZoom() - 1);
+    },
     showMouseoverInfoWindow: function(marker, title) {
       var content = document.createElement('div');
       content.innerHTML = title;
@@ -716,6 +748,7 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
         if (marker) bounds.extend(marker.getPosition());
       };
       Map.fitBounds(bounds);
+      if (Map.getZoom() > 10) Map.setZoom(10);
     }
   });
 

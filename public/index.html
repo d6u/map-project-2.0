@@ -22,12 +22,20 @@
 <div class="ly-app" ng-controller="AppCtrl as AppCtrl">
   <div md-map-canvas class="ly-map-canvas"></div>
 
+  <div md-map-control class="ly-map-control md-map-control">
+    <a href class="md-map-control-button" ng-click="MdMapControlCtrl.zoomIn()"><i class="fa fa-plus"></i></a>
+    <a href class="md-map-control-button" ng-click="MdMapControlCtrl.zoomOut()"><i class="fa fa-minus"></i></a>
+  </div>
+
   <!-- Side Panel -->
   <div class="ly-side-panel" ng-controller="PanelCtrl as PanelCtrl">
 
     <div class="md-toolbar" ng-class="{show: PanelCtrl.savedPlaces.length > 1}">
       <a href class="md-toolbar-button left" ng-click="AppCtrl.showDirectionModal = true">
         <i class="fa fa-location-arrow"></i>
+      </a>
+      <a href class="md-toolbar-button left" ng-click="AppCtrl.showSavedPlaces()">
+        <i class="fa fa-arrows-alt"></i>
       </a>
       <a href class="md-toolbar-button right">
         <i class="fa fa-share-square"></i>
