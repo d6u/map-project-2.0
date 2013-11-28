@@ -62,17 +62,24 @@
     <div class="cp-modal-content">
       <div class="md-direction-options-modal">
         <div class="md-direction-modal-blocks">
-          <div class="md-direction-modal-option-block">
-            <a href class="md-direction-modal-option-block-button"></a>
+          <div class="md-direction-modal-option-block" ng-class="{active: AppCtrl.directionMode == 'linear'}">
+            <a href class="md-direction-modal-option-block-button" ng-click="AppCtrl.directionMode = 'linear'">
+              <img src="/img/direction-mode-linear.png">
+            </a>
           </div>
-          <div class="md-direction-modal-option-block">
-            <a href class="md-direction-modal-option-block-button"></a>
+          <div class="md-direction-modal-option-block" ng-class="{active: AppCtrl.directionMode == 'sunburst'}">
+            <a href class="md-direction-modal-option-block-button" ng-click="AppCtrl.directionMode = 'sunburst'">
+              <img src="/img/direction-mode-sunburst.png">
+            </a>
           </div>
-          <div class="md-direction-modal-option-block">
-            <a href class="md-direction-modal-option-block-button"></a>
+          <div class="md-direction-modal-option-block" ng-class="{active: AppCtrl.directionMode == 'none'}">
+            <a href class="md-direction-modal-option-block-button" ng-click="AppCtrl.directionMode = 'none'">
+              <img src="/img/direction-mode-none.png">
+            </a>
           </div>
         </div>
         <div class="md-direction-modal-footer">
+          <p class="md-direction-modal-footer-instruction">Pick a direction mode.</p>
           <a href class="md-direction-modal-footer-button" ng-click="AppCtrl.showDirectionModal = false">Cancel</a>
         </div>
       </div>

@@ -91,9 +91,18 @@ var app = angular.module('mapApp', ['ngBackbone', 'ngAnimate']);
 
 // --- Controllers ---
 //
-app.controller('AppCtrl', function() {
+app.controller('AppCtrl', function($scope, SavedPlaces) {
   this.showDirectionModal = false;
   this.showDropzone       = false;
+  this.directionMode      = 'none';
+
+  var _this = this;
+
+  $scope.$watch('AppCtrl.directionMode', function(val) {
+    _this.showDirectionModal = false;
+    SavedPlaces._directionMode = val;
+    SavedPlaces.renderDirections();
+  });
 });
 
 
@@ -463,7 +472,9 @@ app.directive('mdPlaceMouseover', function(Map) {
 // --- Services ---
 //
 app.factory('Map', function(BackboneEvents) {
-  var mouseoverInfoWindow = new google.maps.InfoWindow();
+  var mouseoverInfoWindow = new google.maps.InfoWindow({
+    disableAutoPan: true
+  });
   var map = {
     setMap: function(map) {
       this._googleMap = map;
@@ -484,7 +495,10 @@ app.factory('Map', function(BackboneEvents) {
 });
 
 
-app.value('PlacesAutocompleteService', new google.maps.places.AutocompleteService());
+app.value('DirectionsService', new google.maps.DirectionsService);
+
+
+app.value('PlacesAutocompleteService', new google.maps.places.AutocompleteService);
 
 
 app.factory('PlacesService', function(Map) {
@@ -533,6 +547,9 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
           }
         );
       }
+      this.on('remove', function(_this) {
+        _this._marker.setMap(null);
+      });
     },
     parseShortAddress: function() {
       var short_addresses = [];
@@ -562,6 +579,7 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
         position: this.get('geometry').location,
         map: Map.getMap()
       });
+      this.trigger('marker_ready');
       // bind mouseover infoWindow
       this._marker.addListener('mouseover', function() {
         Map.showMouseoverInfoWindow(_this._marker, _this.get('name'));
@@ -606,14 +624,105 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, $timeout) {
 });
 
 
-app.factory('SavedPlaces', function(Backbone, Place) {
+app.factory('SavedPlaces', function(Backbone, Place, DirectionsService, DirectionsRenderer) {
   var SavedPlaces = Backbone.Collection.extend({
     model: Place,
     initialize: function() {
       var place = new Place(null, {_input: true});
       this.add(place);
+      this.on('marker_ready', this.renderDirections, this);
+      this.on('remove', this.renderDirections, this);
+    },
+    // _directionMode
+    renderDirections: function() {
+      switch (this._directionMode) {
+        case 'linear':
+          var linear = this.getLinearModeLatlng();
+          if (linear) {
+            DirectionsService.route({
+              origin: linear.home,
+              destination: linear.dest,
+              waypoints: linear.waypoints,
+              travelMode: google.maps.TravelMode.DRIVING
+            }, function(result, status) {
+              if (status === google.maps.DirectionsStatus.OK) {
+                DirectionsRenderer.setDirections(result);
+              } else {
+                DirectionsRenderer.setDirections(null);
+              }
+            });
+          } else {
+            DirectionsRenderer.setDirections(null);
+          }
+          break;
+        case 'sunburst':
+          console.log(this.getSunburstModeLatlng());
+          break;
+        case 'none':
+
+          break;
+      }
+    },
+    getSunburstModeLatlng: function() {
+      var origin;
+      var dests = [];
+      this.forEach(function(place, i) {
+        if (!place._input) {
+          if (!origin) {
+            origin = place.get('geometry').location;
+          } else {
+            dests.push(place.get('geometry').location);
+          }
+        }
+      });
+      if (origin && dests.length) return {origin: origin, dests: dests};
+    },
+    getLinearModeLatlng: function() {
+      var home, waypoints = [], dest;
+      var begin = 0;
+      var end   = this.length - 1;
+      for (var i = 0; i < this.models.length; i++) {
+        if (!this.models[i]._input) {
+          home = this.models[i].get('geometry').location;
+          begin = i + 1;
+          break;
+        }
+      }
+      for (var i = this.models.length - 1; i >= 0; i--) {
+        if (!this.models[i]._input) {
+          dest = this.models[i].get('geometry').location;
+          end  = i;
+          break;
+        }
+      }
+      if (begin < end) {
+        var a = this.slice(begin, end);
+        for (var i = 0; i < a.length; i++) {
+          if (!a[i]._input) {
+            waypoints.push({location: a[i].get('geometry').location, stopover: true});
+          }
+        }
+      }
+      if (begin <= end) return {home: home, dest: dest, waypoints: waypoints};
     }
   });
 
   return new SavedPlaces;
+});
+
+
+app.factory('DirectionsRenderer', function(Map) {
+  var options  = {suppressMarkers: true}
+  var renderer = new google.maps.DirectionsRenderer(options);
+  var service  = {
+    setDirections: function(route) {
+      if (route) {
+        if (!renderer.getMap()) renderer.setMap(Map.getMap());
+        renderer.setDirections(route);
+      } else {
+        renderer.setMap(null);
+      }
+    }
+  };
+  return service;
 });
