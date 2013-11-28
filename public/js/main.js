@@ -484,7 +484,9 @@ app.factory('Map', function(BackboneEvents) {
     getBounds: function() { return this.getMap().getBounds(); },
     fitBounds: function(bounds) { this.getMap().fitBounds(bounds); },
     showMouseoverInfoWindow: function(marker, title) {
-      mouseoverInfoWindow.setContent(title);
+      var content = document.createElement('div');
+      content.innerHTML = title;
+      mouseoverInfoWindow.setContent(content);
       mouseoverInfoWindow.open(this.getMap(), marker);
     },
     closeMouseoverInfoWindow: function() {
@@ -756,12 +758,8 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService) {
 
       renderer.addListener('mouseover', function() {
         var anchor = new google.maps.MVCObject;
-        anchor.set('position', leg.end_location);
+        anchor.set('position', paths[Math.floor(paths.length / 2)]);
         Map.showMouseoverInfoWindow(anchor, leg.duration.text);
-      });
-
-      renderer.addListener('mouseout', function() {
-        Map.closeMouseoverInfoWindow();
       });
 
       renderer.setMap(Map.getMap());
