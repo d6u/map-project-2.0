@@ -423,7 +423,7 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
             delete scope.AppCtrl.droppedItem;
           } else if ('endIndex' in ui.item._sortable) {
             var place = SavedPlaces.at(ui.item._sortable.initIndex);
-            SavedPlaces.remove(place);
+            SavedPlaces.remove(place, {silent: true});
             SavedPlaces.add(place, {at: ui.item._sortable.endIndex});
           }
           scope.$apply(function() { scope.AppCtrl.showDropzone = false; });
@@ -482,6 +482,7 @@ app.factory('Map', function(BackboneEvents) {
     },
     getMap: function() { return this._googleMap; },
     getBounds: function() { return this.getMap().getBounds(); },
+    fitBounds: function(bounds) { this.getMap().fitBounds(bounds); },
     showMouseoverInfoWindow: function(marker, title) {
       mouseoverInfoWindow.setContent(title);
       mouseoverInfoWindow.open(this.getMap(), marker);
@@ -624,22 +625,28 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, $timeout) {
 });
 
 
-app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer) {
+app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
   var SavedPlaces = Backbone.Collection.extend({
     model: Place,
     initialize: function() {
+      var _this = this;
       var place = new Place(null, {_input: true});
       this.add(place);
       this.on('marker_ready', this.renderDirections, this);
       this.on('remove', this.renderDirections, this);
+      this.on('add', function(place) {
+        if (!place._input) _this.renderDirections();
+      });
     },
     // _directionMode
     renderDirections: function() {
+      var _this = this;
       switch (this._directionMode) {
         case 'linear':
           var linear = this.getLinearModeLatlng();
           if (linear) {
-            DirectionsRenderer.renderLinearDirections(linear);
+            DirectionsRenderer.renderLinearDirections(linear)
+              .then(function() { _this.centerAllPlaces(); });
           } else {
             DirectionsRenderer.clearDirections();
           }
@@ -647,7 +654,8 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer) {
         case 'sunburst':
           var sunburst = this.getSunburstModeLatlng();
           if (sunburst) {
-            DirectionsRenderer.renderSunburstDirections(sunburst);
+            DirectionsRenderer.renderSunburstDirections(sunburst)
+              .then(function() { _this.centerAllPlaces(); });
           } else {
             DirectionsRenderer.clearDirections();
           }
@@ -698,6 +706,14 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer) {
         }
       }
       if (begin <= end) return {home: home, dest: dest, waypoints: waypoints};
+    },
+    centerAllPlaces: function() {
+      var bounds = new google.maps.LatLngBounds;
+      for (var i = 0; i < this.models.length; i++) {
+        var marker = this.models[i]._marker;
+        if (marker) bounds.extend(marker.getPosition());
+      };
+      Map.fitBounds(bounds);
     }
   });
 
@@ -706,11 +722,34 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer) {
 
 
 app.factory('DirectionsRenderer', function(Map, DirectionsService) {
-  var options   = {suppressMarkers: true}
-  var renderers = [];
+  var renderers    = [];
+  var colorCounter = 0;
+
+  function randomColor() {
+    var colors = [
+      '1f77b4', 'ff7f0e' ,'ffbb78' ,'2ca02c' ,'98df8a' ,'d62728' ,'ff9896',
+      '9467bd', 'c5b0d5', '8c564b', 'c49c94', 'e377c2', 'f7b6d2', 'bcbd22',
+      'dbdb8d'];
+    var color = colors[colorCounter++];
+    if (!color) {
+      colorCounter = -1;
+      color = colors[colorCounter++];
+    }
+    return color;
+  }
+
+  function getOptions() {
+    return {
+      suppressMarkers: true,
+      suppressInfoWindows: true,
+      polylineOptions: {
+        strokeColor: randomColor()
+      }
+    };
+  }
 
   function createRender() {
-    var renderer = new google.maps.DirectionsRenderer(options);
+    var renderer = new google.maps.DirectionsRenderer(getOptions());
     renderer.setMap(Map.getMap());
     renderers.push(renderer);
     return renderer;
@@ -720,11 +759,13 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService) {
     for (var i = 0; i < renderers.length; i++) {
       renderers[i].setMap(null);
     }
+    colorCounter = 0;
     renderers = [];
   }
 
   var service  = {
     renderLinearDirections: function(linear) {
+      var d = new jQuery.Deferred;
       cleanRenders();
       DirectionsService.route({
         origin:      linear.home,
@@ -734,22 +775,33 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService) {
       }, function(result, status) {
         if (status === google.maps.DirectionsStatus.OK) {
           createRender().setDirections(result);
+          d.resolve();
+        } else {
+          d.resolve();
         }
       });
+      return d;
     },
     renderSunburstDirections: function(sunburst) {
+      var ds = [];
       cleanRenders();
-      for (var i = 0; i < sunburst.dests.length; i++) {
-        DirectionsService.sunburst({
+      _.forEach(sunburst.dests, function(dest) {
+        var d = new jQuery.Deferred;
+        ds.push(d);
+        DirectionsService.route({
           origin:      sunburst.origin,
-          destination: sunburst.dests[i],
+          destination: dest,
           travelMode:  google.maps.TravelMode.DRIVING
         }, function(result, status) {
           if (status === google.maps.DirectionsStatus.OK) {
             createRender().setDirections(result);
+            d.resolve();
+          } else {
+            d.resolve();
           }
-        })
-      };
+        });
+      });
+      return jQuery.when.apply(jQuery, ds);
     },
     clearDirections: function() {
       cleanRenders();
