@@ -23,6 +23,14 @@ $panel-width: 350px;
   bottom: 0;
 }
 
+.ly-map-control {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 40px;
+  z-index: 50; // higher than map canvas, lower than drop zone
+}
+
 .ly-side-panel {
   position: absolute;
   top: 0;

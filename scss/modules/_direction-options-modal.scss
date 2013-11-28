@@ -11,14 +11,22 @@
   width: 300px;
   height: 300px;
   float: left;
+  background-color: $blueDark;
+  @include transition();
+  &.active {
+    width: 280px;
+    height: 280px;
+    padding: 10px;
+  }
 }
 
 .md-direction-modal-option-block-button {
   display: block;
   height: 100%;
   width: 100%;
+  background-color: #FFF;
   &:hover {
-    background-color: $blue;
+    background-color: saturate(lighten($blue, 23), 11);
   }
 }
 
@@ -42,4 +50,11 @@
   &:hover {
     color: $red;
   }
+}
+
+.md-direction-modal-footer-instruction {
+  float: left;
+  line-height: 60px;
+  font-size: 20px;
+  margin-left: 20px;
 }

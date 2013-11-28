@@ -80,6 +80,16 @@
   height: 80px;
   line-height: 80px;
   text-align: center;
+  font-size: 0;
+
+  &::before {
+    content: '';
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+    margin-right: -0.25em; // Adjusts for spacing
+  }
+
   img { vertical-align: middle; }
   &.ng-hide ~ .md-place-details {
     margin-right: 0;

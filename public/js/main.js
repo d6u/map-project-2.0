@@ -91,9 +91,22 @@ var app = angular.module('mapApp', ['ngBackbone', 'ngAnimate']);
 
 // --- Controllers ---
 //
-app.controller('AppCtrl', function() {
+app.controller('AppCtrl', function($scope, SavedPlaces) {
   this.showDirectionModal = false;
   this.showDropzone       = false;
+  this.directionMode      = 'none';
+
+  var _this = this;
+
+  this.showSavedPlaces = function() {
+    SavedPlaces.centerAllPlaces();
+  };
+
+  $scope.$watch('AppCtrl.directionMode', function(val) {
+    _this.showDirectionModal = false;
+    SavedPlaces._directionMode = val;
+    SavedPlaces.renderDirections();
+  });
 });
 
 
@@ -414,7 +427,7 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
             delete scope.AppCtrl.droppedItem;
           } else if ('endIndex' in ui.item._sortable) {
             var place = SavedPlaces.at(ui.item._sortable.initIndex);
-            SavedPlaces.remove(place);
+            SavedPlaces.remove(place, {silent: true});
             SavedPlaces.add(place, {at: ui.item._sortable.endIndex});
           }
           scope.$apply(function() { scope.AppCtrl.showDropzone = false; });
@@ -460,19 +473,52 @@ app.directive('mdPlaceMouseover', function(Map) {
 });
 
 
+app.directive('mdMapControl', function() {
+  return {
+    controllerAs: 'MdMapControlCtrl',
+    controller: function(Map) {
+      this.zoomIn = function() {
+        Map.zoomIn();
+      };
+      this.zoomOut = function() {
+        Map.zoomOut();
+      };
+    },
+    link: function(scope, element, attrs) {
+
+    }
+  };
+});
+
+
 // --- Services ---
 //
 app.factory('Map', function(BackboneEvents) {
-  var mouseoverInfoWindow = new google.maps.InfoWindow();
+  var mouseoverInfoWindow = new google.maps.InfoWindow({
+    disableAutoPan: true
+  });
   var map = {
     setMap: function(map) {
       this._googleMap = map;
       this.enter('ready');
     },
-    getMap: function() { return this._googleMap; },
-    getBounds: function() { return this.getMap().getBounds(); },
+    getMap:    function()       { return this._googleMap; },
+    getBounds: function()       { return this.getMap().getBounds(); },
+    fitBounds: function(bounds) { this.getMap().fitBounds(bounds); },
+    getZoom:   function()       { return this.getMap().getZoom(); },
+    setZoom:   function(level)  { return this.getMap().setZoom(level); },
+    zoomIn: function() {
+      var map = this.getMap();
+      map.setZoom(map.getZoom() + 1);
+    },
+    zoomOut: function() {
+      var map = this.getMap();
+      map.setZoom(map.getZoom() - 1);
+    },
     showMouseoverInfoWindow: function(marker, title) {
-      mouseoverInfoWindow.setContent(title);
+      var content = document.createElement('div');
+      content.innerHTML = title;
+      mouseoverInfoWindow.setContent(content);
       mouseoverInfoWindow.open(this.getMap(), marker);
     },
     closeMouseoverInfoWindow: function() {
@@ -484,7 +530,10 @@ app.factory('Map', function(BackboneEvents) {
 });
 
 
-app.value('PlacesAutocompleteService', new google.maps.places.AutocompleteService());
+app.value('DirectionsService', new google.maps.DirectionsService);
+
+
+app.value('PlacesAutocompleteService', new google.maps.places.AutocompleteService);
 
 
 app.factory('PlacesService', function(Map) {
@@ -533,6 +582,9 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
           }
         );
       }
+      this.on('remove', function(_this) {
+        _this._marker.setMap(null);
+      });
     },
     parseShortAddress: function() {
       var short_addresses = [];
@@ -562,6 +614,7 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
         position: this.get('geometry').location,
         map: Map.getMap()
       });
+      this.trigger('marker_ready');
       // bind mouseover infoWindow
       this._marker.addListener('mouseover', function() {
         Map.showMouseoverInfoWindow(_this._marker, _this.get('name'));
@@ -606,14 +659,198 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, $timeout) {
 });
 
 
-app.factory('SavedPlaces', function(Backbone, Place) {
+app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
   var SavedPlaces = Backbone.Collection.extend({
     model: Place,
     initialize: function() {
+      var _this = this;
       var place = new Place(null, {_input: true});
       this.add(place);
+      this.on('marker_ready', this.renderDirections, this);
+      this.on('remove', this.renderDirections, this);
+      this.on('add', function(place) {
+        if (!place._input) _this.renderDirections();
+      });
+    },
+    // _directionMode
+    renderDirections: function() {
+      var _this = this;
+      switch (this._directionMode) {
+        case 'linear':
+          var linear = this.getLinearModeLatlng();
+          if (linear) {
+            DirectionsRenderer.renderLinearDirections(linear)
+              .then(function() { _this.centerAllPlaces(); });
+          } else {
+            DirectionsRenderer.clearDirections();
+          }
+          break;
+        case 'sunburst':
+          var sunburst = this.getSunburstModeLatlng();
+          if (sunburst) {
+            DirectionsRenderer.renderSunburstDirections(sunburst)
+              .then(function() { _this.centerAllPlaces(); });
+          } else {
+            DirectionsRenderer.clearDirections();
+          }
+          break;
+        case 'none':
+          DirectionsRenderer.clearDirections();
+          break;
+      }
+    },
+    getSunburstModeLatlng: function() {
+      var origin;
+      var dests = [];
+      this.forEach(function(place, i) {
+        if (!place._input) {
+          if (!origin) {
+            origin = place.get('geometry').location;
+          } else {
+            dests.push(place.get('geometry').location);
+          }
+        }
+      });
+      if (origin && dests.length) return {origin: origin, dests: dests};
+    },
+    getLinearModeLatlng: function() {
+      var home, waypoints = [], dest;
+      var begin = 0;
+      var end   = this.length - 1;
+      for (var i = 0; i < this.models.length; i++) {
+        if (!this.models[i]._input) {
+          home = this.models[i].get('geometry').location;
+          begin = i + 1;
+          break;
+        }
+      }
+      for (var i = this.models.length - 1; i >= 0; i--) {
+        if (!this.models[i]._input) {
+          dest = this.models[i].get('geometry').location;
+          end  = i;
+          break;
+        }
+      }
+      if (begin < end) {
+        var a = this.slice(begin, end);
+        for (var i = 0; i < a.length; i++) {
+          if (!a[i]._input) {
+            waypoints.push({location: a[i].get('geometry').location, stopover: true});
+          }
+        }
+      }
+      if (begin <= end) return {home: home, dest: dest, waypoints: waypoints};
+    },
+    centerAllPlaces: function() {
+      var bounds = new google.maps.LatLngBounds;
+      for (var i = 0; i < this.models.length; i++) {
+        var marker = this.models[i]._marker;
+        if (marker) bounds.extend(marker.getPosition());
+      };
+      Map.fitBounds(bounds);
+      if (Map.getZoom() > 10) Map.setZoom(10);
     }
   });
 
   return new SavedPlaces;
+});
+
+
+app.factory('DirectionsRenderer', function(Map, DirectionsService) {
+  var renderers    = [];
+  var colorCounter = 0;
+
+  function randomColor() {
+    var colors = ['1f77b4', 'ff7f0e', '2ca02c', 'd62728', '9467bd',
+                  '8c564b', 'e377c2', 'bcbd22', '17becf'];
+    var color = colors[colorCounter++];
+    if (!color) {
+      colorCounter = -1;
+      color = colors[colorCounter++];
+    }
+    return color;
+  }
+
+  function createRenderer(route) {
+    var color = randomColor()
+    var legs  = route.routes[0].legs;
+
+    _.forEach(route.routes[0].legs, function(leg) {
+      var steps = leg.steps;
+      var paths = [];
+      for (var j = 0; j < steps.length; j++) {
+        paths = paths.concat(steps[j].path);
+      }
+
+      var renderer = new google.maps.Polyline({
+        strokeColor:   color,
+        strokeWeight:  10,
+        strokeOpacity: 0.5,
+        path:          paths
+      });
+
+      renderer.addListener('mouseover', function() {
+        var anchor = new google.maps.MVCObject;
+        anchor.set('position', paths[Math.floor(paths.length / 2)]);
+        Map.showMouseoverInfoWindow(anchor, leg.duration.text);
+      });
+
+      renderer.setMap(Map.getMap());
+      renderers.push(renderer);
+    });
+  }
+
+  function cleanRenders() {
+    for (var i = 0; i < renderers.length; i++) {
+      renderers[i].setMap(null);
+    }
+    colorCounter = 0;
+    renderers = [];
+  }
+
+  var service  = {
+    renderLinearDirections: function(linear) {
+      var d = new jQuery.Deferred;
+      cleanRenders();
+      DirectionsService.route({
+        origin:      linear.home,
+        destination: linear.dest,
+        waypoints:   linear.waypoints,
+        travelMode:  google.maps.TravelMode.DRIVING
+      }, function(result, status) {
+        if (status === google.maps.DirectionsStatus.OK) {
+          createRenderer(result);
+          d.resolve();
+        } else {
+          d.resolve();
+        }
+      });
+      return d;
+    },
+    renderSunburstDirections: function(sunburst) {
+      var ds = [];
+      cleanRenders();
+      _.forEach(sunburst.dests, function(dest) {
+        var d = new jQuery.Deferred;
+        ds.push(d);
+        DirectionsService.route({
+          origin:      sunburst.origin,
+          destination: dest,
+          travelMode:  google.maps.TravelMode.DRIVING
+        }, function(result, status) {
+          if (status === google.maps.DirectionsStatus.OK) {
+            createRenderer(result);
+            d.resolve();
+          } else {
+            d.resolve();
+          }
+        });
+      });
+      return jQuery.when.apply(jQuery, ds);
+    },
+    clearDirections: function() {
+      cleanRenders();
+    }
+  };
+  return service;
 });
