@@ -624,7 +624,7 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, $timeout) {
 });
 
 
-app.factory('SavedPlaces', function(Backbone, Place, DirectionsService, DirectionsRenderer) {
+app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer) {
   var SavedPlaces = Backbone.Collection.extend({
     model: Place,
     initialize: function() {
@@ -639,27 +639,21 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsService, Directio
         case 'linear':
           var linear = this.getLinearModeLatlng();
           if (linear) {
-            DirectionsService.route({
-              origin: linear.home,
-              destination: linear.dest,
-              waypoints: linear.waypoints,
-              travelMode: google.maps.TravelMode.DRIVING
-            }, function(result, status) {
-              if (status === google.maps.DirectionsStatus.OK) {
-                DirectionsRenderer.setDirections(result);
-              } else {
-                DirectionsRenderer.setDirections(null);
-              }
-            });
+            DirectionsRenderer.renderLinearDirections(linear);
           } else {
-            DirectionsRenderer.setDirections(null);
+            DirectionsRenderer.clearDirections();
           }
           break;
         case 'sunburst':
-          console.log(this.getSunburstModeLatlng());
+          var sunburst = this.getSunburstModeLatlng();
+          if (sunburst) {
+            DirectionsRenderer.renderSunburstDirections(sunburst);
+          } else {
+            DirectionsRenderer.clearDirections();
+          }
           break;
         case 'none':
-
+          DirectionsRenderer.clearDirections();
           break;
       }
     },
@@ -711,17 +705,54 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsService, Directio
 });
 
 
-app.factory('DirectionsRenderer', function(Map) {
-  var options  = {suppressMarkers: true}
-  var renderer = new google.maps.DirectionsRenderer(options);
+app.factory('DirectionsRenderer', function(Map, DirectionsService) {
+  var options   = {suppressMarkers: true}
+  var renderers = [];
+
+  function createRender() {
+    var renderer = new google.maps.DirectionsRenderer(options);
+    renderer.setMap(Map.getMap());
+    renderers.push(renderer);
+    return renderer;
+  }
+
+  function cleanRenders() {
+    for (var i = 0; i < renderers.length; i++) {
+      renderers[i].setMap(null);
+    }
+    renderers = [];
+  }
+
   var service  = {
-    setDirections: function(route) {
-      if (route) {
-        if (!renderer.getMap()) renderer.setMap(Map.getMap());
-        renderer.setDirections(route);
-      } else {
-        renderer.setMap(null);
-      }
+    renderLinearDirections: function(linear) {
+      cleanRenders();
+      DirectionsService.route({
+        origin:      linear.home,
+        destination: linear.dest,
+        waypoints:   linear.waypoints,
+        travelMode:  google.maps.TravelMode.DRIVING
+      }, function(result, status) {
+        if (status === google.maps.DirectionsStatus.OK) {
+          createRender().setDirections(result);
+        }
+      });
+    },
+    renderSunburstDirections: function(sunburst) {
+      cleanRenders();
+      for (var i = 0; i < sunburst.dests.length; i++) {
+        DirectionsService.sunburst({
+          origin:      sunburst.origin,
+          destination: sunburst.dests[i],
+          travelMode:  google.maps.TravelMode.DRIVING
+        }, function(result, status) {
+          if (status === google.maps.DirectionsStatus.OK) {
+            createRender().setDirections(result);
+          }
+        })
+      };
+    },
+    clearDirections: function() {
+      cleanRenders();
     }
   };
   return service;
