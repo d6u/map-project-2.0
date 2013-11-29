@@ -9,6 +9,7 @@
   <title></title>
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css/bootstrap.min.css">
   <link rel="stylesheet" href="css/font-awesome.min.css">
   <link rel="stylesheet" href="css/main.css">
   <script src="/js/modernizr-2.6.2.min.js"></script>
@@ -31,13 +32,13 @@
   <div class="ly-side-panel" ng-controller="PanelCtrl as PanelCtrl">
 
     <div class="md-toolbar" ng-class="{show: PanelCtrl.savedPlaces.length > 1}">
-      <a href class="md-toolbar-button left" ng-click="AppCtrl.showDirectionModal = true">
+      <a href class="md-toolbar-button left" bs-tooltip bs-tooltip-title="Directions" bs-tooltip-placement="bottom" ng-click="AppCtrl.showDirectionModal = true">
         <i class="fa fa-location-arrow"></i>
       </a>
-      <a href class="md-toolbar-button left" ng-click="AppCtrl.showSavedPlaces()">
+      <a href class="md-toolbar-button left" bs-tooltip bs-tooltip-title="Zoom map to all markers" bs-tooltip-placement="bottom" ng-click="AppCtrl.showSavedPlaces()">
         <i class="fa fa-arrows-alt"></i>
       </a>
-      <a href class="md-toolbar-button right">
+      <a href class="md-toolbar-button right" bs-tooltip bs-tooltip-title="Send this list to friends" bs-tooltip-placement="bottom">
         <i class="fa fa-share-square"></i>
       </a>
     </div>
@@ -47,7 +48,7 @@
     </ol>
 
     <ol class="md-searched-places" ng-show="PanelCtrl.searchedPlaces">
-      <li class="md-place search-result" ng-repeat="place in PanelCtrl.searchedPlaces" ng-click="PanelCtrl.savePlace($event, place)" md-place-mouseover>
+      <li class="md-place search-result" ng-repeat="place in PanelCtrl.searchedPlaces" ng-click="PanelCtrl.savePlace($event, place)" md-place-mouseover bs-tooltip bs-tooltip-title="Click to save" bs-tooltip-placement="right">
         <div class="md-place-picture" ng-show="place.has('cover_picture')">
           <img ng-src="{{place.get('cover_picture')}}">
         </div>
@@ -107,7 +108,7 @@
     <div class="md-place-input" md-place-input>
       <div class="md-place-input-shadow"></div>
       <div class="md-place-input-hint"></div>
-      <textarea id="md-place-input-textarea" class="md-place-input-textarea" rows="1"></textarea>
+      <textarea id="md-place-input-textarea" class="md-place-input-textarea" rows="1" placeholder="Add place"></textarea>
     </div>
   </div>
 </div>
@@ -115,7 +116,7 @@
 
 <script type="text/ng-template" id="saved-place-template">
 <div class="md-place-inner">
-  <label for="md-place-input-textarea" class="md-place-handle">
+  <label for="md-place-input-textarea" class="md-place-handle" bs-tooltip bs-tooltip-title="Drag to reorder or delete" bs-tooltip-placement="bottom">
     <i class="fa fa-check"></i>
   </label>
   <div class="md-place-content">
@@ -135,6 +136,7 @@
 <script src="//maps.googleapis.com/maps/api/js?key=AIzaSyAGJjfEZSf93ey42aqJDIVuOVaLnpUUzWs&libraries=places&sensor=true" type="text/javascript"></script>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 <script>window.jQuery || document.write('<script src="/js/jquery-1.10.2.min.js"><\/script>')</script>
+<script src="/js/bootstrap.min.js"></script>
 <script src="/js/jquery-ui-1.10.3.custom.min.js"></script>
 <script src="/js/lodash.compat.min.js"></script>
 <script src="/js/backbone-min.js"></script>

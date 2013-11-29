@@ -33,6 +33,12 @@ $item-height: 40px;
   outline: none;
   background-color: transparent;
 }
+// Firefox always add extra height to textarea, we need to remove it
+@-moz-document url-prefix() {
+  textarea.md-place-input-textarea {
+    margin-bottom: -15px;
+  }
+}
 
 .md-place-input-hint {
   position: absolute;

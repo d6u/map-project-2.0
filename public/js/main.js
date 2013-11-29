@@ -84,9 +84,64 @@ angular.module('ngBackbone', [])
 });
 
 
+angular.module('ngBootstrap', [])
+// bs-tooltip, bs-tooltip-title, bs-tooltip-placement
+.directive('bsTooltip', function() {
+  return function(scope, element, attrs) {
+
+    var options = {
+      animation: false,
+      placement: attrs.bsTooltipPlacement,
+      title:     attrs.bsTooltipTitle,
+      container: 'body'
+    };
+
+    element.tooltip(options);
+    element.on('click', function() {
+      if (element.hasClass('search-result')) {
+        element.tooltip('destroy');
+        $('body').children('.tooltip').remove();
+      }
+    });
+    element.on('mousedown', function() {
+      if (element.hasClass('md-place-handle')) {
+        element.tooltip('destroy');
+        $('body').children('.tooltip').remove();
+        element.one('mouseup', function() { element.tooltip(options); });
+      }
+    });
+  };
+});
+
+
 // --- mapApp ---
 //
-var app = angular.module('mapApp', ['ngBackbone', 'ngAnimate']);
+var app = angular.module('mapApp', ['ngBackbone', 'ngAnimate', 'ngBootstrap']);
+
+app.run(function($rootScope) {
+  // Show landing user guide
+  function stepShowSentence(string, callback) {
+    var words = string.split('');
+    var delay = 150;
+    function stepCalls(step) {
+      setTimeout(function() {
+        callback(words.slice(0, step + 1).join(''));
+      }, step * delay);
+    }
+    setTimeout(function() {
+      for (var i = 0; i < words.length; i++) {
+        stepCalls(i)
+      }
+    }, 2000);
+  }
+
+  $rootScope.textareaReady = _.once(function() {
+    var textarea = $('#md-place-input-textarea');
+    stepShowSentence("Type here to add a place", function(string) {
+      textarea.attr('placeholder', string);
+    });
+  });
+});
 
 
 // --- Controllers ---
@@ -106,6 +161,19 @@ app.controller('AppCtrl', function($scope, SavedPlaces) {
     _this.showDirectionModal = false;
     SavedPlaces._directionMode = val;
     SavedPlaces.renderDirections();
+
+    switch (val) {
+      case 'linear':
+        $('ol[md-place-list]').removeClass('sunburst-direction-intro')
+          .addClass('linear-direction-intro');
+        break;
+      case 'sunburst':
+        $('ol[md-place-list]').removeClass('linear-direction-intro')
+          .addClass('sunburst-direction-intro');
+        break;
+      default:
+        $('ol[md-place-list]').removeClass('linear-direction-intro sunburst-direction-intro');
+    }
   });
 });
 
@@ -137,7 +205,7 @@ app.controller('PanelCtrl', function($scope, SavedPlaces, SearchedPlaces, Place)
 
 // --- Directives ---
 //
-app.directive('mdPlaceEntry', function($compile, $templateCache) {
+app.directive('mdPlaceEntry', function($compile, $templateCache, SavedPlaces) {
   return {
     controller: function($scope, $element) {
 
@@ -146,6 +214,10 @@ app.directive('mdPlaceEntry', function($compile, $templateCache) {
       var name = scope.place._input ? 'place-input-template' : 'saved-place-template';
       var template = $templateCache.get(name);
       element.html( $compile(template)(scope) );
+      if (scope.place._input) element.find('textarea').focus();
+
+      // inform user guide that textare is ready
+      scope.textareaReady();
 
       scope.$watch('place._input', function(val) {
         if (!val) {
@@ -175,6 +247,7 @@ app.directive('mdPlaceInput', function(PlacesAutocompleteService, Map) {
       var shadow   = element.children('.md-place-input-shadow');
       var hint     = element.children('.md-place-input-hint');
       var textareaEnd;
+      var hintValue;
 
       // return {} with textarea ending position left and lineCount value
       //
@@ -206,16 +279,18 @@ app.directive('mdPlaceInput', function(PlacesAutocompleteService, Map) {
       function getHintBeginningPosition(textareaEnd, hintValue) {
         hint.html(hintValue);
         var hintHeight = hint.height();
-        if (hint.width() + textareaEnd.left > element.width() || hintHeight / 24 > 1) {
-          return {
-            lineCount: textareaEnd.lineCount + hintHeight / 24,
-            hintStartLine: textareaEnd.lineCount + 1,
-            left: 0
-          };
-        } else {
-          textareaEnd.hintStartLine = textareaEnd.lineCount;
-          return textareaEnd;
-        }
+
+        // if we want to display hint on the same line and wrap it to next line
+        // only when current line width is not enough, use:
+        //
+        // if (hint.width() + textareaEnd.left > element.width() ||
+        //     hintHeight / 24 > 1)
+        //
+        return {
+          lineCount: textareaEnd.lineCount + hintHeight / 24,
+          hintStartLine: textareaEnd.lineCount + 1,
+          left: 0
+        };
       }
 
       function updateHint(val) {
@@ -235,7 +310,8 @@ app.directive('mdPlaceInput', function(PlacesAutocompleteService, Map) {
       }
 
       function displayHint(v, p) {
-        var nextTerm = p.description;
+        hintValue = p.description;
+        var nextTerm = "Press \"Tab\" to use: <br/>" + p.description;
         if (nextTerm && nextTerm != textarea.val()) {
           var position = getHintBeginningPosition(textareaEnd, nextTerm);
           textarea.attr('rows', position.lineCount);
@@ -249,7 +325,8 @@ app.directive('mdPlaceInput', function(PlacesAutocompleteService, Map) {
 
       function hintAutocomplete() {
         if (hint.html()) {
-          textarea.val(hint.html());
+          textarea.val(hintValue);
+          hintValue = '';
           hint.empty();
         }
       }
@@ -283,6 +360,10 @@ app.directive('mdPlaceInput', function(PlacesAutocompleteService, Map) {
 
       textarea.on('keyup', function(e) {
         switch (e.keyCode) {
+          case 9:
+            updateTextareaHeight();
+            updateHint();
+            break;
           default:
             updateTextareaHeight();
             updateHint(textarea.val());
@@ -372,22 +453,30 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
       // listen to keyup to fetch search results
       element.on('keyup', function(e) {
         var target = $(e.target);
-        var query = target.val();
-        if (query) {
-          var place = target.scope().place;
-          scope.$apply(function() { place._loading = true; });
-          PlacesService.textSearch(
-            {bounds: Map.getBounds(), query: query},
-            function(result, status) {
-              if (status === google.maps.places.PlacesServiceStatus.OK) {
-                SearchedPlaces.reset();
-                SearchedPlaces.add(result.slice(0,3), {placeInput: place});
-              }
+        var query  = target.val();
+        var place  = target.scope().place;
+        PlacesService.textSearch(
+          {bounds: Map.getBounds(), query: query},
+          function(result, status) {
+            // clean up tooptips that become orphan
+            $('body').children('.tooltip').remove();
+
+            if (status === google.maps.places.PlacesServiceStatus.OK) {
+              SearchedPlaces.reset();
+              SearchedPlaces.add(result.slice(0,3), {placeInput: place});
             }
-          );
+          }
+        );
+        if (query) {
+          scope.$apply(function() { place._loading = true; });
         } else {
-          scope.$apply(function() { SearchedPlaces.reset(); });
+          scope.$apply(function() {
+            delete place._loading;
+            SearchedPlaces.reset();
+          });
         }
+        // clean up tooptips that become orphan
+        $('body').children('.tooltip').remove();
       });
 
       // sortable items
@@ -395,11 +484,14 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
       element.sortable({
         appendTo: '.ly-app',
         cursor: 'move',
+        helper: 'clone',
         handle: '.md-place-handle',
         opacity: '.6',
         placeholder: 'md-place-sort-placeholder',
         start: function(event, ui) {
-          scope.$apply(function() { scope.AppCtrl.showDropzone = true; });
+          if (!ui.item.scope().place._input) {
+            scope.$apply(function() { scope.AppCtrl.showDropzone = true; });
+          }
           contents = element.contents();
           var placeholder = element.sortable('option','placeholder');
           if (placeholder && placeholder.element) {
@@ -518,6 +610,7 @@ app.factory('Map', function(BackboneEvents) {
     showMouseoverInfoWindow: function(marker, title) {
       var content = document.createElement('div');
       content.innerHTML = title;
+      content.style.lineHeight = '18px';
       mouseoverInfoWindow.setContent(content);
       mouseoverInfoWindow.open(this.getMap(), marker);
     },
@@ -541,10 +634,12 @@ app.factory('PlacesService', function(Map) {
   var service = {
     textSearch: function(request, callback) {
       if (textSearchTimer) clearTimeout(textSearchTimer);
-      var _this = this;
-      textSearchTimer = setTimeout(function() {
-        _this._placesService.textSearch(request, callback);
-      }, 600);
+      if (request.query) {
+        var _this = this;
+        textSearchTimer = setTimeout(function() {
+          _this._placesService.textSearch(request, callback);
+        }, 600);
+      }
     },
     getDetails: function(request, callback) {
       this._placesService.getDetails(request, callback);
@@ -622,6 +717,9 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
       this._marker.addListener('mouseout', function() {
         Map.closeMouseoverInfoWindow();
       })
+    },
+    getMarker: function() {
+      return this._marker;
     }
   });
 });
@@ -695,6 +793,7 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
           }
           break;
         case 'none':
+          this.resetMarkers();
           DirectionsRenderer.clearDirections();
           break;
       }
@@ -705,8 +804,10 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
       this.forEach(function(place, i) {
         if (!place._input) {
           if (!origin) {
+            place.getMarker().setIcon('/img/location-icon-start-point.png');
             origin = place.get('geometry').location;
           } else {
+            place.getMarker().setIcon('/img/location-icon-saved-place.png');
             dests.push(place.get('geometry').location);
           }
         }
@@ -719,6 +820,7 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
       var end   = this.length - 1;
       for (var i = 0; i < this.models.length; i++) {
         if (!this.models[i]._input) {
+          this.models[i].getMarker().setIcon('/img/location-icon-start-point.png');
           home = this.models[i].get('geometry').location;
           begin = i + 1;
           break;
@@ -726,6 +828,7 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
       }
       for (var i = this.models.length - 1; i >= 0; i--) {
         if (!this.models[i]._input) {
+          this.models[i].getMarker().setIcon('/img/location-icon-dest.png');
           dest = this.models[i].get('geometry').location;
           end  = i;
           break;
@@ -735,6 +838,7 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
         var a = this.slice(begin, end);
         for (var i = 0; i < a.length; i++) {
           if (!a[i]._input) {
+            a[i].getMarker().setIcon('/img/location-icon-saved-place.png');
             waypoints.push({location: a[i].get('geometry').location, stopover: true});
           }
         }
@@ -749,6 +853,13 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
       };
       Map.fitBounds(bounds);
       if (Map.getZoom() > 10) Map.setZoom(10);
+    },
+    resetMarkers: function() {
+      for (var i = this.models.length - 1; i >= 0; i--) {
+        if (!this.models[i]._input) {
+          this.models[i].getMarker().setIcon('/img/location-icon-saved-place.png');
+        }
+      }
     }
   });
 
