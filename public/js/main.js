@@ -214,6 +214,7 @@ app.directive('mdPlaceEntry', function($compile, $templateCache, SavedPlaces) {
       var name = scope.place._input ? 'place-input-template' : 'saved-place-template';
       var template = $templateCache.get(name);
       element.html( $compile(template)(scope) );
+      if (scope.place._input) element.find('textarea').focus();
 
       // inform user guide that textare is ready
       scope.textareaReady();
