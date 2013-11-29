@@ -233,6 +233,7 @@ app.directive('mdPlaceInput', function(PlacesAutocompleteService, Map) {
       var shadow   = element.children('.md-place-input-shadow');
       var hint     = element.children('.md-place-input-hint');
       var textareaEnd;
+      var hintValue;
 
       // return {} with textarea ending position left and lineCount value
       //
@@ -295,7 +296,8 @@ app.directive('mdPlaceInput', function(PlacesAutocompleteService, Map) {
       }
 
       function displayHint(v, p) {
-        var nextTerm = p.description;
+        hintValue = p.description;
+        var nextTerm = "Press \"Tab\" to use: <br/>" + p.description;
         if (nextTerm && nextTerm != textarea.val()) {
           var position = getHintBeginningPosition(textareaEnd, nextTerm);
           textarea.attr('rows', position.lineCount);
@@ -309,7 +311,8 @@ app.directive('mdPlaceInput', function(PlacesAutocompleteService, Map) {
 
       function hintAutocomplete() {
         if (hint.html()) {
-          textarea.val(hint.html());
+          textarea.val(hintValue);
+          hintValue = '';
           hint.empty();
         }
       }
@@ -343,6 +346,10 @@ app.directive('mdPlaceInput', function(PlacesAutocompleteService, Map) {
 
       textarea.on('keyup', function(e) {
         switch (e.keyCode) {
+          case 9:
+            updateTextareaHeight();
+            updateHint();
+            break;
           default:
             updateTextareaHeight();
             updateHint(textarea.val());
