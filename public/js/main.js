@@ -458,6 +458,9 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
         PlacesService.textSearch(
           {bounds: Map.getBounds(), query: query},
           function(result, status) {
+            // clean up tooptips that become orphan
+            $('body').children('.tooltip').remove();
+
             if (status === google.maps.places.PlacesServiceStatus.OK) {
               SearchedPlaces.reset();
               SearchedPlaces.add(result.slice(0,3), {placeInput: place});
