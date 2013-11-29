@@ -714,6 +714,9 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
       this._marker.addListener('mouseout', function() {
         Map.closeMouseoverInfoWindow();
       })
+    },
+    getMarker: function() {
+      return this._marker;
     }
   });
 });
@@ -787,6 +790,7 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
           }
           break;
         case 'none':
+          this.resetMarkers();
           DirectionsRenderer.clearDirections();
           break;
       }
@@ -797,8 +801,10 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
       this.forEach(function(place, i) {
         if (!place._input) {
           if (!origin) {
+            place.getMarker().setIcon('/img/location-icon-start-point.png');
             origin = place.get('geometry').location;
           } else {
+            place.getMarker().setIcon('/img/location-icon-saved-place.png');
             dests.push(place.get('geometry').location);
           }
         }
@@ -811,6 +817,7 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
       var end   = this.length - 1;
       for (var i = 0; i < this.models.length; i++) {
         if (!this.models[i]._input) {
+          this.models[i].getMarker().setIcon('/img/location-icon-start-point.png');
           home = this.models[i].get('geometry').location;
           begin = i + 1;
           break;
@@ -818,6 +825,7 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
       }
       for (var i = this.models.length - 1; i >= 0; i--) {
         if (!this.models[i]._input) {
+          this.models[i].getMarker().setIcon('/img/location-icon-dest.png');
           dest = this.models[i].get('geometry').location;
           end  = i;
           break;
@@ -827,6 +835,7 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
         var a = this.slice(begin, end);
         for (var i = 0; i < a.length; i++) {
           if (!a[i]._input) {
+            a[i].getMarker().setIcon('/img/location-icon-saved-place.png');
             waypoints.push({location: a[i].get('geometry').location, stopover: true});
           }
         }
@@ -841,6 +850,13 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
       };
       Map.fitBounds(bounds);
       if (Map.getZoom() > 10) Map.setZoom(10);
+    },
+    resetMarkers: function() {
+      for (var i = this.models.length - 1; i >= 0; i--) {
+        if (!this.models[i]._input) {
+          this.models[i].getMarker().setIcon('/img/location-icon-saved-place.png');
+        }
+      }
     }
   });
 
