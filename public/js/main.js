@@ -118,6 +118,31 @@ angular.module('ngBootstrap', [])
 //
 var app = angular.module('mapApp', ['ngBackbone', 'ngAnimate', 'ngBootstrap']);
 
+app.run(function($rootScope) {
+  // Show landing user guide
+  function stepShowSentence(string, callback) {
+    var words = string.split('');
+    var delay = 150;
+    function stepCalls(step) {
+      setTimeout(function() {
+        callback(words.slice(0, step + 1).join(''));
+      }, step * delay);
+    }
+    setTimeout(function() {
+      for (var i = 0; i < words.length; i++) {
+        stepCalls(i)
+      }
+    }, 2000);
+  }
+
+  $rootScope.textareaReady = _.once(function() {
+    var textarea = $('#md-place-input-textarea');
+    stepShowSentence("Type here to add a place", function(string) {
+      textarea.attr('placeholder', string);
+    });
+  });
+});
+
 
 // --- Controllers ---
 //
@@ -167,7 +192,7 @@ app.controller('PanelCtrl', function($scope, SavedPlaces, SearchedPlaces, Place)
 
 // --- Directives ---
 //
-app.directive('mdPlaceEntry', function($compile, $templateCache) {
+app.directive('mdPlaceEntry', function($compile, $templateCache, SavedPlaces) {
   return {
     controller: function($scope, $element) {
 
@@ -176,6 +201,9 @@ app.directive('mdPlaceEntry', function($compile, $templateCache) {
       var name = scope.place._input ? 'place-input-template' : 'saved-place-template';
       var template = $templateCache.get(name);
       element.html( $compile(template)(scope) );
+
+      // inform user guide that textare is ready
+      scope.textareaReady();
 
       scope.$watch('place._input', function(val) {
         if (!val) {
