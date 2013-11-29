@@ -402,21 +402,24 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
       // listen to keyup to fetch search results
       element.on('keyup', function(e) {
         var target = $(e.target);
-        var query = target.val();
-        if (query) {
-          var place = target.scope().place;
-          scope.$apply(function() { place._loading = true; });
-          PlacesService.textSearch(
-            {bounds: Map.getBounds(), query: query},
-            function(result, status) {
-              if (status === google.maps.places.PlacesServiceStatus.OK) {
-                SearchedPlaces.reset();
-                SearchedPlaces.add(result.slice(0,3), {placeInput: place});
-              }
+        var query  = target.val();
+        var place  = target.scope().place;
+        PlacesService.textSearch(
+          {bounds: Map.getBounds(), query: query},
+          function(result, status) {
+            if (status === google.maps.places.PlacesServiceStatus.OK) {
+              SearchedPlaces.reset();
+              SearchedPlaces.add(result.slice(0,3), {placeInput: place});
             }
-          );
+          }
+        );
+        if (query) {
+          scope.$apply(function() { place._loading = true; });
         } else {
-          scope.$apply(function() { SearchedPlaces.reset(); });
+          scope.$apply(function() {
+            delete place._loading;
+            SearchedPlaces.reset();
+          });
         }
       });
 
@@ -575,10 +578,12 @@ app.factory('PlacesService', function(Map) {
   var service = {
     textSearch: function(request, callback) {
       if (textSearchTimer) clearTimeout(textSearchTimer);
-      var _this = this;
-      textSearchTimer = setTimeout(function() {
-        _this._placesService.textSearch(request, callback);
-      }, 600);
+      if (request.query) {
+        var _this = this;
+        textSearchTimer = setTimeout(function() {
+          _this._placesService.textSearch(request, callback);
+        }, 600);
+      }
     },
     getDetails: function(request, callback) {
       this._placesService.getDetails(request, callback);
