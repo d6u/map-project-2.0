@@ -236,16 +236,18 @@ app.directive('mdPlaceInput', function(PlacesAutocompleteService, Map) {
       function getHintBeginningPosition(textareaEnd, hintValue) {
         hint.html(hintValue);
         var hintHeight = hint.height();
-        if (hint.width() + textareaEnd.left > element.width() || hintHeight / 24 > 1) {
-          return {
-            lineCount: textareaEnd.lineCount + hintHeight / 24,
-            hintStartLine: textareaEnd.lineCount + 1,
-            left: 0
-          };
-        } else {
-          textareaEnd.hintStartLine = textareaEnd.lineCount;
-          return textareaEnd;
-        }
+
+        // if we want to display hint on the same line and wrap it to next line
+        // only when current line width is not enough, use:
+        //
+        // if (hint.width() + textareaEnd.left > element.width() ||
+        //     hintHeight / 24 > 1)
+        //
+        return {
+          lineCount: textareaEnd.lineCount + hintHeight / 24,
+          hintStartLine: textareaEnd.lineCount + 1,
+          left: 0
+        };
       }
 
       function updateHint(val) {
