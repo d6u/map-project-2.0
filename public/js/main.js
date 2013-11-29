@@ -161,6 +161,19 @@ app.controller('AppCtrl', function($scope, SavedPlaces) {
     _this.showDirectionModal = false;
     SavedPlaces._directionMode = val;
     SavedPlaces.renderDirections();
+
+    switch (val) {
+      case 'linear':
+        $('ol[md-place-list]').removeClass('sunburst-direction-intro')
+          .addClass('linear-direction-intro');
+        break;
+      case 'sunburst':
+        $('ol[md-place-list]').removeClass('linear-direction-intro')
+          .addClass('sunburst-direction-intro');
+        break;
+      default:
+        $('ol[md-place-list]').removeClass('linear-direction-intro sunburst-direction-intro');
+    }
   });
 });
 
