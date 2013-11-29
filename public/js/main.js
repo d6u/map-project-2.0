@@ -423,6 +423,8 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
             SearchedPlaces.reset();
           });
         }
+        // clean up tooptips that become orphan
+        $('body').children('.tooltip').remove();
       });
 
       // sortable items
