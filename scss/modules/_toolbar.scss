@@ -1,15 +1,17 @@
 .md-toolbar {
-  height: 0;
   overflow: hidden;
   border-bottom: 1px solid $blue;
+  position: relative;
+  z-index: 1;
+  background-color: rgba(#FFF, .9);
 
-  &.md-toolbar-show {
-    @include transition(all, 400ms, cubic-bezier(0.215, 0.61, 0.355, 1));
+  @include transition(all, 400ms, cubic-bezier(0.215, 0.61, 0.355, 1));
+  height: 0;
+
+  &.show {
     height: 40px;
-
-    + .md-place-list-inner {
-      @include transition(all, 400ms, cubic-bezier(0.215, 0.61, 0.355, 1));
-      top: 41px;
+    ~ .md-places::before {
+      height: 40px;
     }
   }
 }

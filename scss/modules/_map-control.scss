@@ -1,0 +1,19 @@
+.md-map-control {
+  background-color: $gray6;
+}
+
+.md-map-control-button {
+  display: block;
+  height: 40px;
+  width: 40px;
+  line-height: 40px;
+  text-align: center;
+  @include transition();
+  color: #FFF;
+  &:hover {
+    color: $green;
+  }
+  &:active {
+    background-color: $gray5;
+  }
+}

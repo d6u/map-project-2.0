@@ -9,6 +9,7 @@
   <title></title>
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css/bootstrap.min.css">
   <link rel="stylesheet" href="css/font-awesome.min.css">
   <link rel="stylesheet" href="css/main.css">
   <script src="/js/modernizr-2.6.2.min.js"></script>
@@ -22,40 +23,72 @@
 <div class="ly-app" ng-controller="AppCtrl as AppCtrl">
   <div md-map-canvas class="ly-map-canvas"></div>
 
+  <div md-map-control class="ly-map-control md-map-control">
+    <a href class="md-map-control-button" ng-click="MdMapControlCtrl.zoomIn()"><i class="fa fa-plus"></i></a>
+    <a href class="md-map-control-button" ng-click="MdMapControlCtrl.zoomOut()"><i class="fa fa-minus"></i></a>
+  </div>
+
   <!-- Side Panel -->
   <div class="ly-side-panel" ng-controller="PanelCtrl as PanelCtrl">
 
-    <div class="md-toolbar">
-      <a href class="md-toolbar-button left" ng-click="AppCtrl.showDirectionModal = true">
+    <div class="md-toolbar" ng-class="{show: PanelCtrl.savedPlaces.length > 1}">
+      <a href class="md-toolbar-button left" bs-tooltip bs-tooltip-title="Directions" bs-tooltip-placement="bottom" ng-click="AppCtrl.showDirectionModal = true">
         <i class="fa fa-location-arrow"></i>
       </a>
-      <a href class="md-toolbar-button right">
+      <a href class="md-toolbar-button left" bs-tooltip bs-tooltip-title="Zoom map to all markers" bs-tooltip-placement="bottom" ng-click="AppCtrl.showSavedPlaces()">
+        <i class="fa fa-arrows-alt"></i>
+      </a>
+      <a href class="md-toolbar-button right" bs-tooltip bs-tooltip-title="Send this list to friends" bs-tooltip-placement="bottom">
         <i class="fa fa-share-square"></i>
       </a>
     </div>
 
-    <ol class="md-places">
-      <li class="md-place" ng-repeat="place in PanelCtrl.savedPlaces" md-place-entry></li>
+    <ol class="md-places" md-place-list>
+      <li class="md-place saved-places js-saved-place" ng-repeat="place in PanelCtrl.savedPlaces" md-place-entry md-place-mouseover></li>
+    </ol>
+
+    <ol class="md-searched-places" ng-show="PanelCtrl.searchedPlaces">
+      <li class="md-place search-result" ng-repeat="place in PanelCtrl.searchedPlaces" ng-click="PanelCtrl.savePlace($event, place)" md-place-mouseover bs-tooltip bs-tooltip-title="Click to save" bs-tooltip-placement="right">
+        <div class="md-place-picture" ng-show="place.has('cover_picture')">
+          <img ng-src="{{place.get('cover_picture')}}">
+        </div>
+        <div class="md-place-details">
+          <header class="md-place-name">{{place.get('name')}}</header>
+          <p class="md-place-address">{{place.get('short_address')}}</p>
+          <a ng-href="{{place.get('url')}}" target="_blank" class="md-place-url">Get more from Google</a>
+        </div>
+      </li>
     </ol>
 
   </div><!-- /.ly-side-panel -->
 
+  <!-- Drop Zone -->
+  <div class="ly-drop-zone md-drop-zone" ng-show="AppCtrl.showDropzone" md-drop-zone>
+    <i class="fa fa-trash-o"></i>
+  </div><!-- /.ly-drop-zone -->
 
   <div class="cp-modal" ng-class="{show: AppCtrl.showDirectionModal}">
     <div class="cp-modal-content">
       <div class="md-direction-options-modal">
         <div class="md-direction-modal-blocks">
-          <div class="md-direction-modal-option-block">
-            <a href class="md-direction-modal-option-block-button"></a>
+          <div class="md-direction-modal-option-block" ng-class="{active: AppCtrl.directionMode == 'linear'}">
+            <a href class="md-direction-modal-option-block-button" ng-click="AppCtrl.directionMode = 'linear'">
+              <img src="/img/direction-mode-linear.png">
+            </a>
           </div>
-          <div class="md-direction-modal-option-block">
-            <a href class="md-direction-modal-option-block-button"></a>
+          <div class="md-direction-modal-option-block" ng-class="{active: AppCtrl.directionMode == 'sunburst'}">
+            <a href class="md-direction-modal-option-block-button" ng-click="AppCtrl.directionMode = 'sunburst'">
+              <img src="/img/direction-mode-sunburst.png">
+            </a>
           </div>
-          <div class="md-direction-modal-option-block">
-            <a href class="md-direction-modal-option-block-button"></a>
+          <div class="md-direction-modal-option-block" ng-class="{active: AppCtrl.directionMode == 'none'}">
+            <a href class="md-direction-modal-option-block-button" ng-click="AppCtrl.directionMode = 'none'">
+              <img src="/img/direction-mode-none.png">
+            </a>
           </div>
         </div>
         <div class="md-direction-modal-footer">
+          <p class="md-direction-modal-footer-instruction">Pick a direction mode.</p>
           <a href class="md-direction-modal-footer-button" ng-click="AppCtrl.showDirectionModal = false">Cancel</a>
         </div>
       </div>
@@ -68,25 +101,42 @@
 <script type="text/ng-template" id="place-input-template">
 <div class="md-place-inner">
   <label for="md-place-input-textarea" class="md-place-handle">
-    <i class="fa fa-plus"></i>
+    <i class="fa fa-plus" ng-show="place._loading == null"></i>
+    <i class="fa fa-refresh fa-spin" ng-show="place._loading"></i>
   </label>
   <div class="md-place-content">
     <div class="md-place-input" md-place-input>
       <div class="md-place-input-shadow"></div>
-      <div class="md-place-input-hint">hint</div>
-      <textarea id="md-place-input-textarea" class="md-place-input-textarea" rows="1"></textarea>
+      <div class="md-place-input-hint"></div>
+      <textarea id="md-place-input-textarea" class="md-place-input-textarea" rows="1" placeholder="Add place"></textarea>
     </div>
   </div>
 </div>
 </script>
-<script type="text/ng-template" id="saved-place-template">
 
+<script type="text/ng-template" id="saved-place-template">
+<div class="md-place-inner">
+  <label for="md-place-input-textarea" class="md-place-handle" bs-tooltip bs-tooltip-title="Drag to reorder or delete" bs-tooltip-placement="bottom">
+    <i class="fa fa-check"></i>
+  </label>
+  <div class="md-place-content">
+    <div class="md-place-picture" ng-show="place.has('cover_picture')">
+      <img ng-src="{{place.get('cover_picture')}}">
+    </div>
+    <div class="md-place-details">
+      <header class="md-place-name">{{place.get('name')}}</header>
+      <p class="md-place-address">{{place.get('short_address')}}</p>
+      <a ng-href="{{place.get('url')}}" target="_blank" class="md-place-url">Get more from Google</a>
+    </div>
+  </div>
+</div>
 </script>
 
 
 <script src="//maps.googleapis.com/maps/api/js?key=AIzaSyAGJjfEZSf93ey42aqJDIVuOVaLnpUUzWs&libraries=places&sensor=true" type="text/javascript"></script>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 <script>window.jQuery || document.write('<script src="/js/jquery-1.10.2.min.js"><\/script>')</script>
+<script src="/js/bootstrap.min.js"></script>
 <script src="/js/jquery-ui-1.10.3.custom.min.js"></script>
 <script src="/js/lodash.compat.min.js"></script>
 <script src="/js/backbone-min.js"></script>
@@ -97,6 +147,7 @@
 <script src="/js/angular-sanitize.min.js"></script>
 <script src="/js/angular-touch.min.js"></script>
 <script src="/js/main.js"></script>
+<script src="/js/main-animations.js"></script>
 
 <script>
   (function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=
