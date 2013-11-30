@@ -71,7 +71,34 @@
   <div class="md-share-modal" ng-class="{show: AppCtrl.showShareModal}">
     <div class="md-share-modal-content">
       <div class="md-share-modal-inner">
-
+        <form class="form-horizontal">
+          <div class="form-group">
+            <label for="share-modal-email" class="col-sm-3 control-label">Your Email</label>
+            <div class="col-sm-9">
+              <input type="email" class="form-control" id="share-modal-email" placeholder="your@email.com" required>
+              <p class="help-block">We will send you a confirmation email first</p>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="share-modal-title" class="col-sm-3 control-label">Title</label>
+            <div class="col-sm-9">
+              <input type="text" class="form-control" id="share-modal-title" placeholder="">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="share-modal-receivers" class="col-sm-3 control-label">Friends' Email</label>
+            <div class="col-sm-9">
+              <textarea class="form-control" id="share-modal-receivers" placeholder="example1@email.com, example2@email.com" required></textarea>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-sm-offset-3 col-sm-9">
+              <button type="button" class="btn btn-default">Cancel</button>
+              <button type="submit" class="btn btn-primary">Send</button>
+              <p class="help-block">By press "Send", you agree to our term and use. <a href="#">Read more</a>.</p>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   </div>

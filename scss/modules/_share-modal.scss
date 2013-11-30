@@ -54,7 +54,13 @@
 // --- Contents ---
 //
 .md-share-modal-inner {
-  width: 300px;
-  height: 300px;
+  width: 700px;
+  min-height: 300px;
   background-color: #FFF;
+  padding: 20px;
+  font-size: 14px;
+
+  .help-block {
+    margin-bottom: 0;
+  }
 }

@@ -150,6 +150,7 @@ app.controller('AppCtrl', function($scope, SavedPlaces) {
   this.showDirectionModal = false;
   this.showDropzone       = false;
   this.directionMode      = 'none';
+  this.showShareModal     = false;
 
   var _this = this;
 
@@ -173,6 +174,14 @@ app.controller('AppCtrl', function($scope, SavedPlaces) {
         break;
       default:
         $('ol[md-place-list]').removeClass('linear-direction-intro sunburst-direction-intro');
+    }
+  });
+
+  $scope.$watch('AppCtrl.showShareModal', function(val) {
+    if (val) {
+      $('#share-modal-title').attr(
+        'placeholder',
+        'Trip to ' + SavedPlaces.getLastPlace().get('name'));
     }
   });
 });
@@ -858,6 +867,13 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
       for (var i = this.models.length - 1; i >= 0; i--) {
         if (!this.models[i]._input) {
           this.models[i].getMarker().setIcon('/img/location-icon-saved-place.png');
+        }
+      }
+    },
+    getLastPlace: function() {
+      for (var i = this.models.length - 1; i >= 0; i--) {
+        if (!this.models[i]._input) {
+          return this.models[i];
         }
       }
     }
