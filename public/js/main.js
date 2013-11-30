@@ -592,6 +592,48 @@ app.directive('mdMapControl', function() {
 });
 
 
+app.directive('mdShareModal', function() {
+  return {
+    controllerAs: 'MdShareModalCtrl',
+    controller: function($http, $element, $scope, SavedPlaces, validateEmail, $q) {
+      this.form = {};
+
+      this.send = function() {
+        if (this.formValidation.$valid) {
+          // Validate receivers' email
+          var receivers = this.form.receivers.split(/\s*,\s*/);
+          for (var i = receivers.length - 1; i >= 0; i--) {
+            if (!validateEmail(receivers[i])) {
+              alert('"'+ receivers[i] +'" is not a valid email address.');
+              return;
+            }
+          }
+
+          if (this.form.title == null) {
+            this.form.title = $element.find('#share-modal-title')
+                                      .attr('placeholder');
+          }
+          var places = SavedPlaces
+            .filter(function(place) { return !place._input; })
+            .map(function(place, i) {
+              return {
+                o: i,
+                n: place.get('name'),
+                a: place.get('formatted_address'),
+                r: place.get('reference')
+              };
+            });
+
+          $http.post('/share_list', {form: this.form, places: places});
+          $scope.AppCtrl.showShareModal = false;
+        };
+      };
+    },
+    link: function(scope, element, attrs, Ctrl) {}
+  };
+});
+
+
 // --- Services ---
 //
 app.factory('Map', function(BackboneEvents) {
@@ -980,4 +1022,10 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService) {
     }
   };
   return service;
+});
+
+
+app.value('validateEmail', function(email) {
+  var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  return re.test(email);
 });
