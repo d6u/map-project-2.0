@@ -38,7 +38,7 @@
       <a href class="md-toolbar-button left" bs-tooltip bs-tooltip-title="Zoom map to all markers" bs-tooltip-placement="bottom" ng-click="AppCtrl.showSavedPlaces()">
         <i class="fa fa-arrows-alt"></i>
       </a>
-      <a href class="md-toolbar-button right" bs-tooltip bs-tooltip-title="Send this list to friends" bs-tooltip-placement="bottom">
+      <a href class="md-toolbar-button right" bs-tooltip bs-tooltip-title="Send this list to friends" bs-tooltip-placement="bottom" ng-click="AppCtrl.showShareModal = true">
         <i class="fa fa-share-square"></i>
       </a>
     </div>
@@ -67,6 +67,15 @@
     <i class="fa fa-trash-o"></i>
   </div><!-- /.ly-drop-zone -->
 
+  <!-- Modal -->
+  <div class="md-share-modal" ng-class="{show: AppCtrl.showShareModal}">
+    <div class="md-share-modal-content">
+      <div class="md-share-modal-inner">
+
+      </div>
+    </div>
+  </div>
+
   <div class="cp-modal" ng-class="{show: AppCtrl.showDirectionModal}">
     <div class="cp-modal-content">
       <div class="md-direction-options-modal">
@@ -94,7 +103,7 @@
       </div>
     </div>
   </div>
-  <div class="cp-modal-overlay" ng-click="AppCtrl.showDirectionModal = false"></div>
+  <div class="cp-modal-overlay" ng-click="AppCtrl.showDirectionModal = false; AppCtrl.showShareModal = false"></div>
 </div>
 
 
