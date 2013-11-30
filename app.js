@@ -1,8 +1,4 @@
 
-/**
- * Module dependencies.
- */
-
 var express = require('express');
 var http    = require('http');
 var path    = require('path');
@@ -28,8 +24,13 @@ if ('development' == app.get('env')) {
   app.use(express.errorHandler());
 }
 
-app.post('/share_list'      , require('./routes/share_list.js'));
-app.get( '/confirm/:user_id', require('./routes/confirm_email.js'));
+
+// Routes
+//
+app.post('/share_list/:list_id', require('./routes/share_list.js'));
+app.post('/share_list'         , require('./routes/share_list.js'));
+app.get( '/confirm/:user_id'   , require('./routes/confirm_email.js'));
+
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
