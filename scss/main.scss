@@ -3,6 +3,7 @@
 @import "base/color";
 
 @import "components/clearfix";
+@import "components/mixins";
 @import "components/transition";
 @import "components/modal";
 
@@ -15,3 +16,4 @@
 @import "modules/direction-options-modal";
 @import "modules/place-input";
 @import "modules/map-control";
+@import "modules/share-modal";
