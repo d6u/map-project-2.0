@@ -36,7 +36,7 @@ module.exports = {
 
   // sender is a user db object
   // list is a db object
-  sendListEmails: function(sender, list) {
+  sendListEmails: function(sender, list, resend) {
     var options = {
       from:    sender.e,
       // 'to' field is defined later
@@ -44,11 +44,15 @@ module.exports = {
       text:    JSON.stringify(list)
     };
     for (var i = list.rs.length - 1; i >= 0; i--) {
-      options.to = list.rs[i].e;
-      smtp.sendMail(options, function(err, res) {
-        if (err) console.warn(err);
-        else console.log("Message sent to " + options.to + ": " + res.message);
-      });
+      if (!list.rs[i].s || resend) {
+        options.to = list.rs[i].e;
+        (function(receiver) {
+          smtp.sendMail(options, function(err, res) {
+            if (err) console.warn(err);
+            else console.log("Message sent to " + receiver + ": " + res.message);
+          });
+        })(options.to);
+      }
     }
   }
 
