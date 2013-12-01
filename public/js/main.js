@@ -831,7 +831,8 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map, $l
       var _this  = this;
 
       // Load list data if id is defined in path
-      var listId = /^\/(\w+)$/.exec($location.path())[1];
+      var match = /^\/(\w+)$/.exec($location.path());
+      if (match) var listId = match[1];
       if (listId) {
         $http.get('/'+listId+'/data').then(function(res) {
           for (var i = 0; i < res.data.ps.length; i++) {
