@@ -1,2 +1,3 @@
 .DS_Store
 public/css/main.css
+node_modules

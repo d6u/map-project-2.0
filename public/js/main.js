@@ -118,6 +118,10 @@ angular.module('ngBootstrap', [])
 //
 var app = angular.module('mapApp', ['ngBackbone', 'ngAnimate', 'ngBootstrap']);
 
+app.config(function($locationProvider) {
+  $locationProvider.html5Mode(true);
+});
+
 app.run(function($rootScope) {
   // Show landing user guide
   function stepShowSentence(string, callback) {
@@ -150,6 +154,7 @@ app.controller('AppCtrl', function($scope, SavedPlaces) {
   this.showDirectionModal = false;
   this.showDropzone       = false;
   this.directionMode      = 'none';
+  this.showShareModal     = false;
 
   var _this = this;
 
@@ -173,6 +178,14 @@ app.controller('AppCtrl', function($scope, SavedPlaces) {
         break;
       default:
         $('ol[md-place-list]').removeClass('linear-direction-intro sunburst-direction-intro');
+    }
+  });
+
+  $scope.$watch('AppCtrl.showShareModal', function(val) {
+    if (val) {
+      $('#share-modal-title').attr(
+        'placeholder',
+        'Trip to ' + SavedPlaces.getLastPlace().get('name'));
     }
   });
 });
@@ -583,6 +596,58 @@ app.directive('mdMapControl', function() {
 });
 
 
+app.directive('mdShareModal', function() {
+  return {
+    controllerAs: 'MdShareModalCtrl',
+    controller: function($http, $element, $scope, SavedPlaces, validateEmail, $q, $location) {
+
+      this.form = {};
+
+      this.send = function() {
+        if (this.formValidation.$valid) {
+          // Validate receivers' email
+          var receivers = this.form.receivers.split(/\s*,\s*/);
+          for (var i = receivers.length - 1; i >= 0; i--) {
+            if (!validateEmail(receivers[i])) {
+              alert('"'+ receivers[i] +'" is not a valid email address.');
+              return;
+            }
+          }
+
+          if (this.form.title == null) {
+            this.form.title = $element.find('#share-modal-title')
+                                      .attr('placeholder');
+          }
+          var places = SavedPlaces
+            .filter(function(place) { return !place._input; })
+            .map(function(place, i) {
+              return {
+                o: i,
+                n: place.get('name'),
+                a: place.get('formatted_address'),
+                r: place.get('reference')
+              };
+            });
+
+          var path = $location.path();
+          var url  = '/share_list';
+          if (path)  match = /^\/(\w+)$/.exec(path);
+          if (match) url  += '/' + match[1];
+
+          $http.post(url, {form: this.form, places: places})
+          .then(function(res) {
+            $location.path('/'+res.data._id);
+          });
+
+          $scope.AppCtrl.showShareModal = false;
+        };
+      };
+    },
+    link: function(scope, element, attrs, Ctrl) {}
+  };
+});
+
+
 // --- Services ---
 //
 app.factory('Map', function(BackboneEvents) {
@@ -664,15 +729,18 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
           function(result, status) {
             if (status === google.maps.places.PlacesServiceStatus.OK) {
               $rootScope.$apply(function() {
-                if (options.placeInput) options.placeInput._loading = null;
+                if (options && options.placeInput) options.placeInput._loading = null;
                 _this.set(result);
                 _this.parseShortAddress();
                 _this.getCoverPhoto();
               });
             } else {
               $rootScope.$apply(function() {
-                if (options.placeInput) options.placeInput._loading = null;
+                if (options && options.placeInput) options.placeInput._loading = null;
               });
+            }
+            if (options && options.afterGetDetail) {
+              options.afterGetDetail(_this);
             }
           }
         );
@@ -757,17 +825,53 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, $timeout) {
 });
 
 
-app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
+app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map, $location, $http, PlacesService) {
   var SavedPlaces = Backbone.Collection.extend({
     model: Place,
     initialize: function() {
-      var _this = this;
-      var place = new Place(null, {_input: true});
+      var _this  = this;
+
+      // Load list data if id is defined in path
+      var match = /^\/(\w+)$/.exec($location.path());
+      if (match) var listId = match[1];
+      if (listId) {
+        $http.get('/'+listId+'/data').then(function(res) {
+          for (var i = 0; i < res.data.ps.length; i++) {
+            var place = new Place({
+              reference: res.data.ps[i].r
+            }, {
+              afterGetDetail: function(place) {
+                place.createMarker();
+                _this.unshift(place);
+              }
+            });
+          }
+        });
+      }
+
+      var place  = new Place(null, {_input: true});
       this.add(place);
       this.on('marker_ready', this.renderDirections, this);
       this.on('remove', this.renderDirections, this);
       this.on('add', function(place) {
         if (!place._input) _this.renderDirections();
+      });
+
+      // Save list if list id is defined
+      this.on('remove add', function() {
+        if (listId) {
+          var places = _this.filter(function(place) {
+            return !place._input;
+          }).map(function(place, i) {
+            return {
+              o: i,
+              n: place.get('name'),
+              a: place.get('formatted_address'),
+              r: place.get('reference')
+            };
+          });
+          $http.post('/'+listId, {places: places});
+        }
       });
     },
     // _directionMode
@@ -858,6 +962,13 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
       for (var i = this.models.length - 1; i >= 0; i--) {
         if (!this.models[i]._input) {
           this.models[i].getMarker().setIcon('/img/location-icon-saved-place.png');
+        }
+      }
+    },
+    getLastPlace: function() {
+      for (var i = this.models.length - 1; i >= 0; i--) {
+        if (!this.models[i]._input) {
+          return this.models[i];
         }
       }
     }
@@ -964,4 +1075,10 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService) {
     }
   };
   return service;
+});
+
+
+app.value('validateEmail', function(email) {
+  var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  return re.test(email);
 });
