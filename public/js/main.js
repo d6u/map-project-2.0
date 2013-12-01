@@ -118,6 +118,10 @@ angular.module('ngBootstrap', [])
 //
 var app = angular.module('mapApp', ['ngBackbone', 'ngAnimate', 'ngBootstrap']);
 
+app.config(function($locationProvider) {
+  $locationProvider.html5Mode(true);
+});
+
 app.run(function($rootScope) {
   // Show landing user guide
   function stepShowSentence(string, callback) {
@@ -595,7 +599,8 @@ app.directive('mdMapControl', function() {
 app.directive('mdShareModal', function() {
   return {
     controllerAs: 'MdShareModalCtrl',
-    controller: function($http, $element, $scope, SavedPlaces, validateEmail, $q) {
+    controller: function($http, $element, $scope, SavedPlaces, validateEmail, $q, $location) {
+
       this.form = {};
 
       this.send = function() {
@@ -624,7 +629,15 @@ app.directive('mdShareModal', function() {
               };
             });
 
-          $http.post('/share_list', {form: this.form, places: places});
+          var path = $location.path();
+          var url  = '/share_list';
+          if (path) url += '/' + (/^\/(\w+)$/.exec(path)[1]);
+
+          $http.post(url, {form: this.form, places: places})
+          .then(function(res) {
+            $location.path('/'+res.data._id);
+          });
+
           $scope.AppCtrl.showShareModal = false;
         };
       };
@@ -715,15 +728,18 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
           function(result, status) {
             if (status === google.maps.places.PlacesServiceStatus.OK) {
               $rootScope.$apply(function() {
-                if (options.placeInput) options.placeInput._loading = null;
+                if (options && options.placeInput) options.placeInput._loading = null;
                 _this.set(result);
                 _this.parseShortAddress();
                 _this.getCoverPhoto();
               });
             } else {
               $rootScope.$apply(function() {
-                if (options.placeInput) options.placeInput._loading = null;
+                if (options && options.placeInput) options.placeInput._loading = null;
               });
+            }
+            if (options && options.afterGetDetail) {
+              options.afterGetDetail(_this);
             }
           }
         );
@@ -808,17 +824,52 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, $timeout) {
 });
 
 
-app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map) {
+app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map, $location, $http, PlacesService) {
   var SavedPlaces = Backbone.Collection.extend({
     model: Place,
     initialize: function() {
-      var _this = this;
-      var place = new Place(null, {_input: true});
+      var _this  = this;
+
+      // Load list data if id is defined in path
+      var listId = /^\/(\w+)$/.exec($location.path())[1];
+      if (listId) {
+        $http.get('/'+listId+'/data').then(function(res) {
+          for (var i = 0; i < res.data.ps.length; i++) {
+            var place = new Place({
+              reference: res.data.ps[i].r
+            }, {
+              afterGetDetail: function(place) {
+                place.createMarker();
+                _this.unshift(place);
+              }
+            });
+          }
+        });
+      }
+
+      var place  = new Place(null, {_input: true});
       this.add(place);
       this.on('marker_ready', this.renderDirections, this);
       this.on('remove', this.renderDirections, this);
       this.on('add', function(place) {
         if (!place._input) _this.renderDirections();
+      });
+
+      // Save list if list id is defined
+      this.on('remove add', function() {
+        if (listId) {
+          var places = _this.filter(function(place) {
+            return !place._input;
+          }).map(function(place, i) {
+            return {
+              o: i,
+              n: place.get('name'),
+              a: place.get('formatted_address'),
+              r: place.get('reference')
+            };
+          });
+          $http.post('/'+listId, {places: places});
+        }
       });
     },
     // _directionMode
