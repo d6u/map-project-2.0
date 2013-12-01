@@ -7,6 +7,14 @@ var smtp   = mailer.createTransport('SMTP', {
 });
 
 
+var hostname;
+if (process.env.NODE_ENV == 'production') {
+  hostname = "http://iwantmap.com/";
+} else {
+  hostname = "http://localhost:3000/";
+}
+
+
 module.exports = {
   getMailer: function() { return mailer; },
 
@@ -16,7 +24,7 @@ module.exports = {
   },
 
   sendConfirmationEmail: function(user) {
-    var confirmLink = "http://localhost:3000/confirm/" + user._id;
+    var confirmLink = hostname + "confirm/" + user._id;
 
     var options = {
       from:    "iwantmap.com <no-reply@iwantmap.com>",
@@ -37,7 +45,7 @@ module.exports = {
   // sender is a user db object
   // list is a db object
   sendListEmails: function(sender, list, resend) {
-    var listUrl = "http://localhost:3000/" + list._id;
+    var listUrl = hostname + list._id;
     var options = {
       from:    sender.e,
       // 'to' field is defined later

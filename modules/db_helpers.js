@@ -61,7 +61,6 @@ module.exports = {
   // listData: list object without id
   // callback: called with list as argument
   upsertList: function(id, listData, callback) {
-    console.log(id);
     if (id) {
       lists.update(
         {_id: new ObjectID(id)}, {$set: listData}, {w: 1, safe: true},
