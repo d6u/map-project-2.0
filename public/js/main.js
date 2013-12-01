@@ -631,7 +631,8 @@ app.directive('mdShareModal', function() {
 
           var path = $location.path();
           var url  = '/share_list';
-          if (path) url += '/' + (/^\/(\w+)$/.exec(path)[1]);
+          if (path)  match = /^\/(\w+)$/.exec(path);
+          if (match) url  += '/' + match[1];
 
           $http.post(url, {form: this.form, places: places})
           .then(function(res) {

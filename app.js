@@ -27,12 +27,13 @@ if ('development' == app.get('env')) {
 
 // Routes
 //
+app.post('/share_list'         , require('./routes/share_list.js'));
+app.post('/share_list/:list_id', require('./routes/share_list.js'));
+app.get( '/confirm/:user_id'   , require('./routes/confirm_email.js'));
+
 app.get( '/:list_id'           , require('./routes/index.js'));
 app.post('/:list_id'           , require('./routes/edit_list.js'));
 app.get( '/:list_id/data'      , require('./routes/get_list_data.js'));
-app.post('/share_list/:list_id', require('./routes/share_list.js'));
-app.post('/share_list'         , require('./routes/share_list.js'));
-app.get( '/confirm/:user_id'   , require('./routes/confirm_email.js'));
 
 
 http.createServer(app).listen(app.get('port'), function(){

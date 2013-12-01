@@ -37,11 +37,12 @@ module.exports = {
   // sender is a user db object
   // list is a db object
   sendListEmails: function(sender, list, resend) {
+    var listUrl = "http://localhost:3000/" + list._id;
     var options = {
       from:    sender.e,
       // 'to' field is defined later
       subject: list.t,
-      text:    JSON.stringify(list)
+      text:    sender.e + " just shared a places list with you, check it out: " + listUrl
     };
     for (var i = list.rs.length - 1; i >= 0; i--) {
       if (!list.rs[i].s || resend) {
