@@ -72,6 +72,16 @@ module.exports = {
         function(err, list) { callback(list[0]); }
       );
     }
+  },
+
+  getList: function(id, callback) {
+    if (id.length === 24) {
+      lists.findOne({_id: new ObjectID(id)}, function(err, list) {
+        callback(list);
+      });
+    } else {
+      callback();
+    }
   }
 
 };
