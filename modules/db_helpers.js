@@ -62,8 +62,9 @@ module.exports = {
   // callback: called with list as argument
   upsertList: function(id, listData, callback) {
     if (id) {
-      lists.update(
-        {_id: new ObjectID(id)}, {$set: listData}, {w: 1, safe: true},
+      lists.findAndModify(
+        {_id: new ObjectID(id)}, '_id', {$set: listData},
+        {w: 1, safe: true, 'new': true},
         function(err, list) { callback(list); }
       );
     } else {
