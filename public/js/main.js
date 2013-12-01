@@ -232,19 +232,22 @@ app.directive('mdPlaceEntry', function($compile, $templateCache, SavedPlaces) {
       // inform user guide that textare is ready
       scope.textareaReady();
 
-      scope.$watch('place._input', function(val) {
-        if (!val) {
+      scope.$watch('place._input', function(val, old) {
+        if (old && !val) {
           var newChild     = $compile($templateCache.get('saved-place-template'))(scope);
           var currentChild = element.children();
           newChild.css({position: 'absolute', top: 0, left: 350});
-          element.append(newChild).animate({height: newChild.height()}, 200, function() {
-            element.css({height: ''});
-          });
-          newChild.animate({left: 0}, 200, function() {
-            newChild.css({position: ''});
-          });
-          currentChild.css('opacity', 1).animate({opacity: 0}, 200, function() {
-            currentChild.remove();
+          element.append(newChild);
+          setTimeout(function() {
+            element.animate({height: newChild.height()}, 200, function() {
+              element.css({height: ''});
+            });
+            newChild.animate({left: 0}, 200, function() {
+              newChild.css({position: ''});
+            });
+            currentChild.css('opacity', 1).animate({opacity: 0}, 200, function() {
+              currentChild.remove();
+            });
           });
         }
       });
@@ -499,14 +502,14 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
         cursor: 'move',
         helper: 'clone',
         handle: '.md-place-handle',
-        opacity: '.6',
-        placeholder: 'md-place-sort-placeholder',
+        opacity: '.9',
+        placeholder: 'md-place-sort-placeholder md-place saved-places',
         start: function(event, ui) {
           if (!ui.item.scope().place._input) {
             scope.$apply(function() { scope.AppCtrl.showDropzone = true; });
           }
           contents = element.contents();
-          var placeholder = element.sortable('option','placeholder');
+          var placeholder = element.sortable('option', 'placeholder');
           if (placeholder && placeholder.element) {
             contents = contents.not(
               element.find(
@@ -516,6 +519,7 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
               ));
           }
           ui.item._sortable = {initIndex: ui.item.index()};
+          ui.placeholder.html(ui.item.contents().clone()).css({opacity: 0.5});
         },
         update: function(event, ui) {
           if (!scope.AppCtrl.droppedItem) {
@@ -825,7 +829,7 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, $timeout) {
 });
 
 
-app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map, $location, $http, PlacesService) {
+app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map, $location, $http, PlacesService, $q) {
   var SavedPlaces = Backbone.Collection.extend({
     model: Place,
     initialize: function() {
@@ -835,18 +839,27 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map, $l
       var match = /^\/(\w+)$/.exec($location.path());
       if (match) var listId = match[1];
       if (listId) {
-        $http.get('/'+listId+'/data').then(function(res) {
-          for (var i = 0; i < res.data.ps.length; i++) {
-            var place = new Place({
-              reference: res.data.ps[i].r
-            }, {
+
+        $http.get('/'+listId+'/data')
+        .then(function(res) {
+          var defers = _.map(res.data.ps, function(ps) {
+            var deferred = $q.defer();
+            var place = new Place({reference: ps.r}, {
               afterGetDetail: function(place) {
                 place.createMarker();
-                _this.unshift(place);
+                deferred.resolve({p: place, o: ps.o});
               }
             });
-          }
-        });
+            return deferred.promise;
+          });
+          return $q.all(defers);
+        })
+        .then(function(data) {
+          data.sort(function(a, b) { return a.o - b.o; });
+          for (var i = data.length - 1; i >= 0; i--) {
+            _this.unshift(data[i].p, {silent: true});
+          };
+        }); // END $http.get()
       }
 
       var place  = new Place(null, {_input: true});
