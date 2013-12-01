@@ -232,19 +232,22 @@ app.directive('mdPlaceEntry', function($compile, $templateCache, SavedPlaces) {
       // inform user guide that textare is ready
       scope.textareaReady();
 
-      scope.$watch('place._input', function(val) {
-        if (!val) {
+      scope.$watch('place._input', function(val, old) {
+        if (old && !val) {
           var newChild     = $compile($templateCache.get('saved-place-template'))(scope);
           var currentChild = element.children();
           newChild.css({position: 'absolute', top: 0, left: 350});
-          element.append(newChild).animate({height: newChild.height()}, 200, function() {
-            element.css({height: ''});
-          });
-          newChild.animate({left: 0}, 200, function() {
-            newChild.css({position: ''});
-          });
-          currentChild.css('opacity', 1).animate({opacity: 0}, 200, function() {
-            currentChild.remove();
+          element.append(newChild);
+          setTimeout(function() {
+            element.animate({height: newChild.height()}, 200, function() {
+              element.css({height: ''});
+            });
+            newChild.animate({left: 0}, 200, function() {
+              newChild.css({position: ''});
+            });
+            currentChild.css('opacity', 1).animate({opacity: 0}, 200, function() {
+              currentChild.remove();
+            });
           });
         }
       });
@@ -499,14 +502,14 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
         cursor: 'move',
         helper: 'clone',
         handle: '.md-place-handle',
-        opacity: '.6',
-        placeholder: 'md-place-sort-placeholder',
+        opacity: '.9',
+        placeholder: 'md-place-sort-placeholder md-place saved-places',
         start: function(event, ui) {
           if (!ui.item.scope().place._input) {
             scope.$apply(function() { scope.AppCtrl.showDropzone = true; });
           }
           contents = element.contents();
-          var placeholder = element.sortable('option','placeholder');
+          var placeholder = element.sortable('option', 'placeholder');
           if (placeholder && placeholder.element) {
             contents = contents.not(
               element.find(
@@ -516,6 +519,7 @@ app.directive('mdPlaceList', function(PlacesService, Map, SearchedPlaces, SavedP
               ));
           }
           ui.item._sortable = {initIndex: ui.item.index()};
+          ui.placeholder.html(ui.item.contents().clone()).css({opacity: 0.5});
         },
         update: function(event, ui) {
           if (!scope.AppCtrl.droppedItem) {
