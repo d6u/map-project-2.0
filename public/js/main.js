@@ -825,7 +825,7 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, $timeout) {
 });
 
 
-app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map, $location, $http, PlacesService) {
+app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map, $location, $http, PlacesService, $q) {
   var SavedPlaces = Backbone.Collection.extend({
     model: Place,
     initialize: function() {
@@ -835,18 +835,27 @@ app.factory('SavedPlaces', function(Backbone, Place, DirectionsRenderer, Map, $l
       var match = /^\/(\w+)$/.exec($location.path());
       if (match) var listId = match[1];
       if (listId) {
-        $http.get('/'+listId+'/data').then(function(res) {
-          for (var i = 0; i < res.data.ps.length; i++) {
-            var place = new Place({
-              reference: res.data.ps[i].r
-            }, {
+
+        $http.get('/'+listId+'/data')
+        .then(function(res) {
+          var defers = _.map(res.data.ps, function(ps) {
+            var deferred = $q.defer();
+            var place = new Place({reference: ps.r}, {
               afterGetDetail: function(place) {
                 place.createMarker();
-                _this.unshift(place);
+                deferred.resolve({p: place, o: ps.o});
               }
             });
-          }
-        });
+            return deferred.promise;
+          });
+          return $q.all(defers);
+        })
+        .then(function(data) {
+          data.sort(function(a, b) { return a.o - b.o; });
+          for (var i = data.length - 1; i >= 0; i--) {
+            _this.unshift(data[i].p, {silent: true});
+          };
+        }); // END $http.get()
       }
 
       var place  = new Place(null, {_input: true});
