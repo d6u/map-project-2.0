@@ -2,19 +2,17 @@ html, body, .ly-app {
   height: 100%;
 }
 
-body {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-}
-
 .ly-app {
   position: relative;
+  z-index: 0;
   overflow: hidden;
+  background-color: #FFF;
 }
 
-$panel-width: 350px;
 
-.ly-map-canvas {
-  overflow: hidden;
+// Map
+//
+.ly-map-panel {
   position: absolute;
   z-index: 0;
   top: 0;
@@ -23,28 +21,74 @@ $panel-width: 350px;
   bottom: 0;
 }
 
-.ly-map-control {
+.ly-panel-toolbar {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 40px;
-  z-index: 50; // higher than map canvas, lower than drop zone
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: $toolbar-height;
+  z-index: 1000;
 }
 
+.ly-map-canvas {
+  overflow: hidden;
+  position: absolute;
+  z-index: 0;
+  top: $toolbar-height;
+  width: 100%;
+  bottom: 0;
+}
+
+.ly-map-control {
+  position: absolute;
+  top: $toolbar-height + $map-control-margin;
+  right: $map-control-margin;
+  width: 40px;
+  z-index: 100; // > .ly-map-canvas && < .ly-drop-zone
+}
+
+
+// Side
+//
 .ly-side-panel {
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
   width: $panel-width;
-  z-index: 1000;
+  z-index: 0;
 }
 
+.ly-side-panel-inner {
+  position: absolute;
+  top: $toolbar-height;
+  left: 0;
+  width: 100%;
+  bottom: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+
+// Info
+//
+.ly-info-panel {
+  position: absolute;
+  z-index: 1000;
+  top: $toolbar-height + $info-panel-margin;
+  left: $panel-width + $info-panel-margin;
+  width: $panel-width;
+  bottom: $info-panel-margin;
+}
+
+
+// Drop Zone
+//
 .ly-drop-zone {
   position: absolute;
-  top: 0;
+  top: $toolbar-height;
   right: 0;
   bottom: 0;
   width: $panel-width;
-  z-index: 100; // higher than map canvas
+  z-index: 2000; // > .ly-info-panel
 }

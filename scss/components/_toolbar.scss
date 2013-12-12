@@ -1,0 +1,30 @@
+.cp-toolbar {
+  background-color: #FFF;
+  border-bottom: 1px solid $blue;
+}
+
+
+.cp-toolbar-button {
+  display: inline-block;
+  height: $toolbar-height;
+  width: $toolbar-height;
+  text-align: center;
+  line-height: $toolbar-height;
+  font-size: 18px;
+
+  color: $blueDark;
+  &:hover {
+    color: $aqua;
+    text-decoration: none;
+  }
+
+  &.left { float: left; }
+  &.right { float: right; }
+}
+
+.cp-toolbar-title {
+  font-size: 22px;
+  text-align: center;
+  line-height: $toolbar-height;
+  @include reset-element();
+}

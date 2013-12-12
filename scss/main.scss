@@ -1,19 +1,25 @@
-
-@import "base/reset";
+// Base
 @import "base/color";
+@import "base/dimensions";
+@import "base/mixins";
+@import "base/transition";
+@import "base/type";
 
-@import "components/clearfix";
-@import "components/mixins";
-@import "components/transition";
+// Comp
 @import "components/modal";
+@import "components/toolbar";
 
+// Layout
 @import "layouts/app";
 
-@import "modules/place-list";
-@import "modules/place";
-@import "modules/toolbar";
+// Module
 @import "modules/drop-zone";
-@import "modules/direction-options-modal";
-@import "modules/place-input";
 @import "modules/map-control";
+@import "modules/side-panel";
+@import "modules/toolbar";
+@import "modules/place-list";
+@import "modules/place-item";
+@import "modules/place-input";
+
+@import "modules/direction-options-modal";
 @import "modules/share-modal";

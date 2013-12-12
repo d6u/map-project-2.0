@@ -8,11 +8,13 @@
   width: 40px;
   line-height: 40px;
   text-align: center;
-  @include transition();
+
   color: #FFF;
   &:hover {
     color: $green;
+    text-decoration: none;
   }
+
   &:active {
     background-color: $gray5;
   }

@@ -1,3 +1,9 @@
+@mixin reset-element() {
+  margin: 0;
+  padding: 0;
+}
+
+
 @mixin backface-visibility($value) {
   -webkit-backface-visibility: $value;
      -moz-backface-visibility: $value;
