@@ -4,6 +4,22 @@
 }
 
 
+@mixin reset-anchor() {
+  &:hover { text-decoration: none; }
+  &:focus {
+    outline: 0; // remove Firefox dotted outline
+  }
+}
+
+
+@mixin anchor-colors($normal, $hover, $active: $hover, $focus: $normal) {
+  color: $normal;
+  &:focus  { color: $focus; }
+  &:hover  { color: $hover; }
+  &:active { color: $active; }
+}
+
+
 @mixin backface-visibility($value) {
   -webkit-backface-visibility: $value;
      -moz-backface-visibility: $value;

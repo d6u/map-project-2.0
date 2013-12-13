@@ -8,14 +8,8 @@
   width: 40px;
   line-height: 40px;
   text-align: center;
+  @include reset-anchor();
+  @include anchor-colors(#FFF, $green);
 
-  color: #FFF;
-  &:hover {
-    color: $green;
-    text-decoration: none;
-  }
-
-  &:active {
-    background-color: $gray5;
-  }
+  &:active { background-color: $gray5; }
 }

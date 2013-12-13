@@ -1,4 +1,6 @@
-.md-place-item {}
+.md-place-item {
+  border-bottom: 1px solid $blue;
+}
 
 .md-place-inner {
   position: relative;
@@ -6,6 +8,64 @@
   min-height: $place-item-min-height;
 }
 
-.md-place-inner {}
-
 .md-place-body {}
+
+.md-place-details {
+  padding: 10px;
+  margin-right: 100px;
+}
+
+.md-place-name {
+  font-size: 18px;
+}
+
+.md-place-address {
+  font-size: 14px;
+  color: $gray5;
+  font-style: italic;
+  @include reset-element();
+  margin-bottom: 10px;
+}
+
+.md-place-url {
+  font-size: 14px;
+  color: $blue;
+}
+
+.md-place-picture {
+  float: right;
+  padding: 10px;
+  width: 100px;
+  height: 100px;
+  line-height: 80px;
+  text-align: center;
+  font-size: 0;
+
+  &::before {
+    content: '';
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+    margin-right: -0.25em; // Adjusts for spacing
+  }
+
+  img { vertical-align: middle; }
+  &.ng-hide ~ .md-place-details {
+    margin-right: 0;
+  }
+}
+
+
+.md-place-tail-label {
+  float: right;
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  font-size: 18px;
+  color: $blueDark;
+
+  ~ .md-place-body {
+    margin-right: 40px;
+  }
+}

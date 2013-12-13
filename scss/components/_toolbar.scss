@@ -11,14 +11,10 @@
   text-align: center;
   line-height: $toolbar-height;
   font-size: 18px;
+  @include reset-anchor();
+  @include anchor-colors($blueDark, $aqua);
 
-  color: $blueDark;
-  &:hover {
-    color: $aqua;
-    text-decoration: none;
-  }
-
-  &.left { float: left; }
+  &.left  { float: left; }
   &.right { float: right; }
 }
 
