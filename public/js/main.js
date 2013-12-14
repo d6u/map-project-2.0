@@ -25,16 +25,6 @@ app.run(function($location, SavedPlaces) {
 //
 app.controller('AppCtrl', function($scope, SearchedPlaces) {
   this.showDropzone = false;
-
-  var lastTerm;
-  $scope.$on('newSearchTerm', function(e, term, inputModel) {
-    if (term != lastTerm) {
-      lastTerm = term;
-      SearchedPlaces.searchWith(term)['finally'](function() {
-        inputModel._loading = false;
-      });
-    }
-  });
 });
 
 
@@ -102,56 +92,77 @@ app.directive('mdPlace', function($compile, $templateCache) {
 });
 
 
-app.directive('mdPlaceInput', function() {
-  return function(scope, element, attrs) {
-    var textarea = element.children('.md-place-input-textarea');
-    var shadow   = element.children('.md-place-input-shadow');
-    // var hint     = element.children('.md-place-input-hint');
+app.directive('mdPlaceInput', function(SearchedPlaces) {
+  return {
+    controllerAs: 'mdPlaceInputCtrl',
+    controller: function($scope, $element) {
+      var textarea = $element.children('.md-place-input-textarea');
+      this.clearInput = function() {
+        textarea.val('');
+        SearchedPlaces.reset();
+        $scope.place._cancelable = false;
+        delete this.lastTerm;
+      };
+    },
+    link: function(scope, element, attrs, Ctrl) {
+      var textarea = element.children('.md-place-input-textarea');
+      var shadow   = element.children('.md-place-input-shadow');
+      // var hint     = element.children('.md-place-input-hint');
 
-    function getShadowHeight(string) {
-      string  = string.replace(/\n/g, '<br>');
-      string  = string.replace(/ $/, '&nbsp;');
-      string += '<br>';
-      span    = $('<span>');
-      shadow.html(span.html(string));
-      return shadow.height();
-    }
-
-    function updateDimensions (inputVal) {
-      textarea.attr('rows', getShadowHeight(inputVal) / 24);
-    }
-
-    var timer;
-    function emitSearchEvent(val) {
-      clearTimeout(timer);
-      if (val) {
-        scope.$apply(function() { scope.place._loading = true; })
-        timer = setTimeout(function() {
-          scope.$emit('newSearchTerm', val, scope.place);
-        }, 1000);
-      } else {
-        scope.$apply(function() { scope.place._loading = false; })
+      function getShadowHeight(string) {
+        string  = string.replace(/\n/g, '<br>');
+        string  = string.replace(/ $/, '&nbsp;');
+        string += '<br>';
+        span    = $('<span>');
+        shadow.html(span.html(string));
+        return shadow.height();
       }
-    }
 
-    element.on('keydown', function(e) {
-      switch (e.keyCode) {
-        case 8: updateDimensions(textarea.val().replace(/[\s\S]$/, '')); break;
-        case 9: e.preventDefault(); break;
+      function updateDimensions (inputVal) {
+        textarea.attr('rows', getShadowHeight(inputVal) / 24);
       }
-    });
 
-    element.on('keypress', function(e) {
-      var char   = e.keyCode === 13 ? "\n" : String.fromCharCode(e.keyCode);
-      var string = textarea.val() + char;
-      updateDimensions(string);
-    });
+      var timer;
+      function emitSearchEvent(val) {
+        clearTimeout(timer);
+        if (val) {
+          scope.$apply(function() { scope.place._loading = true; })
+          timer = setTimeout(function() { searchPlaces(val); }, 1000);
+        } else {
+          scope.$apply(function() { scope.place._loading = false; })
+        }
+      }
 
-    element.on('keyup', function(e) {
-      var val = textarea.val();
-      updateDimensions(val);
-      emitSearchEvent(val.replace(/[\s]+$/, ''));
-    });
+      function searchPlaces(term) {
+        if (term != Ctrl.lastTerm) {
+          Ctrl.lastTerm = term;
+          SearchedPlaces.searchWith(term)['finally'](function() {
+            scope.place._loading = false;
+          });
+        }
+      }
+
+
+      element.on('keydown', function(e) {
+        switch (e.keyCode) {
+          case 8: updateDimensions(textarea.val().replace(/[\s\S]$/, '')); break;
+          case 9: e.preventDefault(); break;
+        }
+      });
+
+      element.on('keypress', function(e) {
+        var char   = e.keyCode === 13 ? "\n" : String.fromCharCode(e.keyCode);
+        var string = textarea.val() + char;
+        updateDimensions(string);
+      });
+
+      element.on('keyup', function(e) {
+        var val = textarea.val();
+        updateDimensions(val);
+        emitSearchEvent(val.replace(/[\s]+$/, ''));
+        scope.place._cancelable = !!val || !!SearchedPlaces.length;
+      });
+    }
   };
 });
 

@@ -145,6 +145,9 @@
     <div class="md-place-tail-label" ng-show="place._loading">
       <i class="fa fa-refresh fa-spin"></i>
     </div>
+    <div class="md-place-tail-label" ng-show="!place._loading && place._cancelable">
+      <a href ng-click="mdPlaceInputCtrl.clearInput()"><i class="fa fa-times"></i></a>
+    </div>
     <div class="md-place-body">
       <div class="md-place-input" md-place-input>
         <div class="md-place-input-shadow"></div>
