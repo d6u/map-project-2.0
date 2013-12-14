@@ -10,49 +10,18 @@ app.config(function($locationProvider) {
   $locationProvider.html5Mode(true);
 });
 
-app.run(function($location, SavedPlaces) {
-  var path = $location.path();
-  if (path === '/') {
-    SavedPlaces.initEmpty();
-  } else {
-    var id = /^\/(.+)$/.exec(path)[1];
-    SavedPlaces.fetchProject(id);
-  }
-});
-
-
-// --- Controllers ---
-//
-app.controller('AppCtrl', function($scope, SearchedPlaces) {
-  this.showDropzone = false;
-});
-
-
-app.controller('MapCtrl', function(Map) {
-  this.zoomIn  = function() { Map.zoomIn(); };
-  this.zoomOut = function() { Map.zoomOut(); };
-});
-
-
-app.controller('SideCtrl', function($scope, SavedPlaces) {
-  var _this = this;
-  this.places = SavedPlaces.places;
-});
-
-
-app.controller('InfoCtrl', function($scope, SearchedPlaces) {
-  var _this = this;
-  $scope.$watch(
-    function()       { return SearchedPlaces.models; },
-    function(models) { _this.places = models; }
-  );
+app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI) {
+  $rootScope.SavedPlaces    = SavedPlaces;
+  $rootScope.SearchedPlaces = SearchedPlaces;
+  $rootScope.Map = Map;
+  $rootScope.UI  = UI;
 });
 
 
 // --- Directives ---
 //
 app.directive('mdMapCanvas', function(Map) {
-  return function(scope, element) { Map.init(element[0]); };
+  return function(scope, element) { Map.setCanvas(element[0]); };
 });
 
 
@@ -66,14 +35,16 @@ app.directive('mdSearchResult', function(Map, SearchedPlaces, SavedPlaces) {
 
       element.on('mouseleave', function() {
         Map.closeMouseoverInfoWindow();
-      })
+      });
 
       element.on('click', function(e) {
         if (!/md-place-url/.test(e.target.className)) {
           var place = scope.place;
           scope.$apply(function() {
             SearchedPlaces.remove(place);
-            SavedPlaces.add(place);
+            var index = _.findIndex(SavedPlaces.places, '_input');
+            SavedPlaces.add(place, {at: index});
+            SavedPlaces.resetInput();
           });
         }
       });
@@ -123,7 +94,7 @@ app.directive('mdPlaceInput', function(SearchedPlaces) {
       }
 
       var timer;
-      function emitSearchEvent(val) {
+      function initSearch(val) {
         clearTimeout(timer);
         if (val) {
           scope.$apply(function() { scope.place._loading = true; })
@@ -159,7 +130,7 @@ app.directive('mdPlaceInput', function(SearchedPlaces) {
       element.on('keyup', function(e) {
         var val = textarea.val();
         updateDimensions(val);
-        emitSearchEvent(val.replace(/[\s]+$/, ''));
+        initSearch(val.replace(/[\s]+$/, ''));
         scope.place._cancelable = !!val || !!SearchedPlaces.length;
       });
     }
@@ -167,17 +138,17 @@ app.directive('mdPlaceInput', function(SearchedPlaces) {
 });
 
 
-app.directive('mdSortablePlaces', function(SavedPlaces) {
+app.directive('mdSortablePlaces', function(SavedPlaces, UI, $rootScope) {
   return function(scope, element, attrs) {
     var contents;
     element.sortable({
-      appendTo:    '.ly-app',
+      appendTo:    'body',
       cursor:      'move',
       helper:      'clone',
       placeholder: 'md-place-item md-place-item-sort-placeholder',
       start: function(event, ui) {
         if (!ui.item.scope().place._input) {
-          scope.$apply(function() { scope.AppCtrl.showDropzone = true; });
+          scope.$apply(function() { UI.showDropzone = true; });
         }
         contents = element.contents();
         var placeholder = element.sortable('option', 'placeholder');
@@ -190,7 +161,7 @@ app.directive('mdSortablePlaces', function(SavedPlaces) {
         ui.placeholder.css('height', ui.item.height());
       },
       update: function(event, ui) {
-        if (!scope.AppCtrl.droppedItemIndex) {
+        if (!$rootScope.droppedItemIndex) {
           ui.item._sortable.endIndex = ui.item.index();
         }
       },
@@ -198,89 +169,36 @@ app.directive('mdSortablePlaces', function(SavedPlaces) {
         element.sortable('cancel');
         contents.detach().appendTo(element);
         scope.$apply(function() {
-          if (scope.AppCtrl.droppedItemIndex) {
-            SavedPlaces.places.splice(scope.AppCtrl.droppedItemIndex, 1);
-            delete scope.AppCtrl.droppedItemIndex;
+          if ($rootScope.droppedItemIndex) {
+            SavedPlaces.places.splice($rootScope.droppedItemIndex, 1);
+            delete $rootScope.droppedItemIndex;
           } else if ('endIndex' in ui.item._sortable) {
             var place = SavedPlaces.places.splice(ui.item._sortable.initIndex, 1)[0];
             SavedPlaces.places.splice(ui.item._sortable.endIndex, 0, place);
           }
-          scope.AppCtrl.showDropzone = false;
+          UI.showDropzone = false;
         });
       }
     });
 
-    scope.$watch(
-      function() { return SavedPlaces.places.length },
-      function() { element.sortable('refresh'); }
-    );
+    SavedPlaces.on('add remove reset sort destory', function() {
+      element.sortable('refresh');
+    });
   }
-})
+});
 
 
-app.directive('mdDropZone', function($timeout) {
+app.directive('mdDropZone', function($timeout, $rootScope) {
   return {
     link: function(scope, element, attrs) {
       element.droppable({
         accept:     '[md-place]',
         hoverClass: 'md-drop-zone-hover',
         drop: function(event, ui) {
-          scope.AppCtrl.droppedItemIndex = ui.draggable.index();
+          $rootScope.droppedItemIndex = ui.draggable.index();
         }
       });
     }
-  };
-});
-
-
-app.directive('mdShareModal', function() {
-  return {
-    controllerAs: 'MdShareModalCtrl',
-    controller: function($http, $element, $scope, SavedPlaces, validateEmail, $q, $location) {
-
-      this.form = {};
-
-      this.send = function() {
-        if (this.formValidation.$valid) {
-          // Validate receivers' email
-          var receivers = this.form.receivers.split(/\s*,\s*/);
-          for (var i = receivers.length - 1; i >= 0; i--) {
-            if (!validateEmail(receivers[i])) {
-              alert('"'+ receivers[i] +'" is not a valid email address.');
-              return;
-            }
-          }
-
-          if (this.form.title == null) {
-            this.form.title = $element.find('#share-modal-title')
-                                      .attr('placeholder');
-          }
-          var places = SavedPlaces
-            .filter(function(place) { return !place._input; })
-            .map(function(place, i) {
-              return {
-                o: i,
-                n: place.get('name'),
-                a: place.get('formatted_address'),
-                r: place.get('reference')
-              };
-            });
-
-          var path = $location.path();
-          var url  = '/share_list';
-          if (path)  match = /^\/(\w+)$/.exec(path);
-          if (match) url  += '/' + match[1];
-
-          $http.post(url, {form: this.form, places: places})
-          .then(function(res) {
-            $location.path('/'+res.data._id);
-          });
-
-          $scope.AppCtrl.showShareModal = false;
-        };
-      };
-    },
-    link: function(scope, element, attrs, Ctrl) {}
   };
 });
 
@@ -351,7 +269,7 @@ app.factory('Map', function(BackboneEvents) {
   };
 
   var Map = {
-    init: function(element) {
+    setCanvas: function(element) {
       this.setMap(new google.maps.Map(element, defaultMapOptions));
       this.enter('ready');
     },
@@ -394,14 +312,14 @@ app.value('PlacesAutocompleteService', new google.maps.places.AutocompleteServic
 
 app.factory('PlacesService', function(Map) {
   var service = {
-    textSearch: function(request, callback) {
-      var defaults = {};
-      if (!request.bounds) defaults.bounds = Map.getBounds();
-      request = _.extend(defaults, request);
-      this._placesService.textSearch(request, callback);
+    textSearch: function(query, callback) {
+      this._placesService.textSearch(
+        {bounds: Map.getBounds(), query: query},
+        callback
+      );
     },
-    getDetails: function(request, callback) {
-      this._placesService.getDetails(request, callback);
+    getDetails: function(reference, callback) {
+      this._placesService.getDetails({reference: reference}, callback);
     }
   };
   Map.inState('ready', function() {
@@ -414,28 +332,28 @@ app.factory('PlacesService', function(Map) {
 app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
   return Backbone.Model.extend({
     initialize: function(attrs, options) {
-      var _this = this;
-      if (options && options.input) {
+      options     = options || {};
+      if (options.input) {
         this._input = true;
       } else {
-        PlacesService.getDetails(
-          {reference: attrs.reference},
-          function(result, status) {
-            if (status === google.maps.places.PlacesServiceStatus.OK) {
-              $rootScope.$apply(function() {
-                _this.set(result);
-                _this.parseShortAddress();
-                _this.getCoverPhoto();
-              });
-            }
-            if (options && options.afterGetDetail) {
-              options.afterGetDetail(_this);
-            }
-          }
-        );
+        this.getDetails();
+        this.createMarker('/img/location-icon-saved-place.png');
       }
-      this.on('remove', function(_this) {
-        _this._marker.setMap(null);
+
+      this.on('destory', function() {
+        this._marker.setMap(null);
+      });
+    },
+    getDetails: function() {
+      var _this = this;
+      PlacesService.getDetails(attrs.reference, function(result, status) {
+        if (status === google.maps.places.PlacesServiceStatus.OK) {
+          $rootScope.$apply(function() {
+            _this.set(result);
+            _this.parseShortAddress();
+            _this.getCoverPhoto();
+          });
+        }
       });
     },
     parseShortAddress: function() {
@@ -457,19 +375,19 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
           this.get('photos')[0].getUrl({maxWidth: 80, maxHeight: 80}));
       }
     },
-    createMarker: function() {
+    createMarker: function(icon) {
       var _this = this;
       this._marker = new google.maps.Marker({
-        cursor: 'pointer',
-        flat: false,
-        icon: '/img/location-icon-saved-place.png',
+        cursor:  'pointer',
+        flat:     false,
+        icon:     icon,
         position: this.get('geometry').location,
-        map: Map.getMap()
+        map:      Map.getMap()
       });
       this.trigger('marker_ready');
       // bind mouseover infoWindow
       this._marker.addListener('mouseover', function() {
-        Map.showMouseoverInfoWindow(_this._marker, _this.get('name'));
+        Map.showMouseoverInfoWindow(this, _this.get('name'));
       });
       this._marker.addListener('mouseout', function() {
         Map.closeMouseoverInfoWindow();
@@ -479,6 +397,16 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
       return this._marker;
     }
   });
+});
+
+
+app.factory('Route', function(Backbone, Place, DirectionsRenderer, Map, $location, $http, PlacesService, $q) {
+  var Route = Backbone.Collection.extend({
+    model: Place,
+    initialize: function() {}
+  });
+
+  return Route;
 });
 
 
@@ -511,7 +439,7 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, PlacesService, $q) 
     searchWith: function(term) {
       var deferred = $q.defer();
       var _this = this;
-      PlacesService.textSearch({query: term}, function(result, status) {
+      PlacesService.textSearch(term, function(result, status) {
         if (status === google.maps.places.PlacesServiceStatus.OK) {
           _this.reset();
           _this.add(result.splice(0, 5));
@@ -528,29 +456,29 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, PlacesService, $q) 
 });
 
 
-app.factory('Route', function(Backbone, Place, DirectionsRenderer, Map, $location, $http, PlacesService, $q) {
-  var Route = Backbone.Collection.extend({
+app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map) {
+  var SavedPlaces = Backbone.Collection.extend({
     model: Place,
-    initialize: function() {}
+    initialize: function() {
+      var path = $location.path();
+      if (path === '/') {
+        this.addInputModel();
+      } else {
+        this.url = path + '/places';
+        this.fetch();
+      }
+    },
+
+    // Custom Actions
+    //
+    addInputModel: function(options) {
+      options = typeof options === 'undefined' ? {} : options;
+      var place = new Place(null, {input: true});
+      this.add(place, {at: options.at != null ? options.at : this.length - 1});
+    }
   });
 
-  return Route;
-});
-
-
-app.factory('SavedPlaces', function(Route, Place) {
-  var SavedPlaces = {
-    places: [],
-    initEmpty: function() {
-      var place = new Place(null, {input: true});
-      this.places.push(place);
-    },
-    add: function(place) {
-      this.places.push(place);
-    }
-  };
-
-  return SavedPlaces;
+  return new SavedPlaces;
 });
 
 
@@ -658,3 +586,6 @@ app.value('validateEmail', function(email) {
   var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
   return re.test(email);
 });
+
+
+app.value('UI', {showDropzone: false});

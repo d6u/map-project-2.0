@@ -20,10 +20,10 @@
 <![endif]-->
 
 
-<div class="ly-app" ng-controller="AppCtrl as AppCtrl">
+<div class="ly-app">
 
   <!-- Map Panel -->
-  <div class="ly-map-panel" ng-controller="MapCtrl as MapCtrl">
+  <div class="ly-map-panel">
     <div class="ly-panel-toolbar cp-toolbar">
       <a href class="cp-toolbar-button right"><i class="fa fa-plus"></i></a>
       <a href class="cp-toolbar-button right"><i class="fa fa-question-circle"></i></a>
@@ -33,13 +33,13 @@
     <div class="ly-map-canvas" md-map-canvas></div>
 
     <div class="ly-map-control md-map-control">
-      <a href class="md-map-control-button" ng-click="MapCtrl.zoomIn()"><i class="fa fa-plus"></i></a>
-      <a href class="md-map-control-button" ng-click="MapCtrl.zoomOut()"><i class="fa fa-minus"></i></a>
+      <a href class="md-map-control-button" ng-click="Map.zoomIn()"><i class="fa fa-plus"></i></a>
+      <a href class="md-map-control-button" ng-click="Map.zoomOut()"><i class="fa fa-minus"></i></a>
     </div>
   </div>
 
   <!-- Side Panel -->
-  <div class="ly-side-panel md-side-panel" ng-controller="SideCtrl as SideCtrl">
+  <div class="ly-side-panel md-side-panel">
     <div class="ly-panel-toolbar cp-toolbar">
       <a href class="cp-toolbar-button left" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Directions"><i class="fa fa-location-arrow"></i></a>
       <a href class="cp-toolbar-button left" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Zoom map to all markers"><i class="fa fa-arrows-alt"></i></a>
@@ -48,27 +48,27 @@
 
     <div class="ly-side-panel-inner">
       <ol class="md-place-list" md-sortable-places>
-        <li class="md-place-item" md-place ng-repeat="place in SideCtrl.places"></li>
+        <li class="md-place-item" md-place ng-repeat="place in SavedPlaces.models"></li>
       </ol>
     </div>
   </div>
 
   <!-- Info Panel -->
-  <div class="ly-info-panel md-info-panel" ng-controller="InfoCtrl as InfoCtrl" ng-show="InfoCtrl.actionHint.length || InfoCtrl.places.length">
+  <div class="ly-info-panel md-info-panel" ng-show="InfoCtrl.actionHint.length || InfoCtrl.places.length">
     <div class="md-info-panel-header" ng-show="InfoCtrl.actionHint.length">
       <header class="md-info-panel-header-content" ng-bind="InfoCtrl.actionHint"></header>
     </div>
     <div class="md-info-panel-body">
       <div class="md-info-panel-body-inner">
         <ul class="md-result-list">
-          <li class="md-place-item" ng-repeat="place in InfoCtrl.places" md-search-result></li>
+          <li class="md-place-item" ng-repeat="place in SearchedPlaces.models" md-search-result></li>
         </ul>
       </div>
     </div>
   </div>
 
   <!-- Drop Zone -->
-  <div class="ly-drop-zone md-drop-zone" md-drop-zone ng-show="AppCtrl.showDropzone"><i class="fa fa-trash-o"></i></div>
+  <div class="ly-drop-zone md-drop-zone" md-drop-zone ng-show="UI.showDropzone"><i class="fa fa-trash-o"></i></div>
 
 
   <!-- Modals -->
