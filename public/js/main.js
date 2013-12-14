@@ -29,6 +29,10 @@ app.directive('mdSearchResult', function(Map, SearchedPlaces, SavedPlaces) {
   return {
     templateUrl: 'place-template',
     link: function(scope, element, attrs) {
+      scope.place._element = element;
+      scope.place._scope   = scope;
+      scope.place.bindMouseoverInfowindowToElement();
+
       element.on('mouseenter', function(e) {
         Map.showMouseoverInfoWindow(scope.place._marker, scope.place.get('name'));
       });
@@ -42,7 +46,8 @@ app.directive('mdSearchResult', function(Map, SearchedPlaces, SavedPlaces) {
           var place = scope.place;
           scope.$apply(function() {
             SearchedPlaces.remove(place);
-            var index = _.findIndex(SavedPlaces.places, '_input');
+            var inputModel = SavedPlaces.find('_input');
+            var index = SavedPlaces.indexOf(inputModel);
             SavedPlaces.add(place, {at: index});
             SavedPlaces.resetInput();
           });
@@ -53,12 +58,14 @@ app.directive('mdSearchResult', function(Map, SearchedPlaces, SavedPlaces) {
 });
 
 
-app.directive('mdPlace', function($compile, $templateCache) {
+app.directive('mdPlace', function($compile, $templateCache, Map) {
   return function(scope, element, attrs) {
     element.html($compile($templateCache.get( scope.place._input ?
                                              'place-template-inputbox' :
                                              'place-template' ))(scope) );
-
+    scope.place._element = element;
+    scope.place._scope   = scope;
+    if (!scope.place._input) scope.place.bindMouseoverInfowindowToElement();
   };
 });
 
@@ -142,7 +149,7 @@ app.directive('mdSortablePlaces', function(SavedPlaces, UI, $rootScope) {
   return function(scope, element, attrs) {
     var contents;
     element.sortable({
-      appendTo:    'body',
+      appendTo:    '.ly-app',
       cursor:      'move',
       helper:      'clone',
       placeholder: 'md-place-item md-place-item-sort-placeholder',
@@ -161,7 +168,7 @@ app.directive('mdSortablePlaces', function(SavedPlaces, UI, $rootScope) {
         ui.placeholder.css('height', ui.item.height());
       },
       update: function(event, ui) {
-        if (!$rootScope.droppedItemIndex) {
+        if (typeof $rootScope.droppedItemIndex === 'undefined') {
           ui.item._sortable.endIndex = ui.item.index();
         }
       },
@@ -169,12 +176,15 @@ app.directive('mdSortablePlaces', function(SavedPlaces, UI, $rootScope) {
         element.sortable('cancel');
         contents.detach().appendTo(element);
         scope.$apply(function() {
-          if ($rootScope.droppedItemIndex) {
-            SavedPlaces.places.splice($rootScope.droppedItemIndex, 1);
+          if (typeof $rootScope.droppedItemIndex != 'undefined') {
+            var place = SavedPlaces.at($rootScope.droppedItemIndex);
+            SavedPlaces.remove(place);
+            place.trigger('destory');
             delete $rootScope.droppedItemIndex;
           } else if ('endIndex' in ui.item._sortable) {
-            var place = SavedPlaces.places.splice(ui.item._sortable.initIndex, 1)[0];
-            SavedPlaces.places.splice(ui.item._sortable.endIndex, 0, place);
+            var place = SavedPlaces.at(ui.item._sortable.initIndex);
+            SavedPlaces.remove(place);
+            SavedPlaces.add(place, {at: ui.item._sortable.endIndex});
           }
           UI.showDropzone = false;
         });
@@ -332,12 +342,12 @@ app.factory('PlacesService', function(Map) {
 app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
   return Backbone.Model.extend({
     initialize: function(attrs, options) {
-      options     = options || {};
+      options = options || {};
       if (options.input) {
         this._input = true;
       } else {
         this.getDetails();
-        this.createMarker('/img/location-icon-saved-place.png');
+        this.createMarker('/img/location-icon-search-result.png');
       }
 
       this.on('destory', function() {
@@ -346,7 +356,7 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
     },
     getDetails: function() {
       var _this = this;
-      PlacesService.getDetails(attrs.reference, function(result, status) {
+      PlacesService.getDetails(this.get('reference'), function(result, status) {
         if (status === google.maps.places.PlacesServiceStatus.OK) {
           $rootScope.$apply(function() {
             _this.set(result);
@@ -391,7 +401,16 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
       });
       this._marker.addListener('mouseout', function() {
         Map.closeMouseoverInfoWindow();
-      })
+      });
+    },
+    bindMouseoverInfowindowToElement: function() {
+      var _this = this;
+      this._element.on('mouseenter', function() {
+        Map.showMouseoverInfoWindow(_this.getMarker(), _this.get('name'));
+      });
+      this._element.on('mouseleave', function() {
+        Map.closeMouseoverInfoWindow();
+      });
     },
     getMarker: function() {
       return this._marker;
@@ -412,24 +431,9 @@ app.factory('Route', function(Backbone, Place, DirectionsRenderer, Map, $locatio
 
 app.factory('SearchedPlaces', function(Backbone, Place, Map, PlacesService, $q) {
   var SearchedPlaces = Backbone.Collection.extend({
+    name: 'SearchedPlaces',
     model: Place,
     initialize: function() {
-      this.on('add', function(place, options) {
-        place._marker = new google.maps.Marker({
-          cursor: 'pointer',
-          flat: false,
-          icon: '/img/location-icon-search-result.png',
-          position: place.get('geometry').location,
-          map: Map.getMap()
-        });
-        // bind mouseover infoWindow
-        place._marker.addListener('mouseover', function() {
-          Map.showMouseoverInfoWindow(place._marker, place.get('name'));
-        });
-        place._marker.addListener('mouseout', function() {
-          Map.closeMouseoverInfoWindow();
-        })
-      });
       this.on('reset', function(c, options) {
         for (var i = 0; i < options.previousModels.length; i++) {
           options.previousModels[i]._marker.setMap(null);
@@ -467,6 +471,10 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map) {
         this.url = path + '/places';
         this.fetch();
       }
+
+      this.on('add', function(model) {
+        model.getMarker().setIcon('/img/location-icon-saved-place.png');
+      });
     },
 
     // Custom Actions
@@ -475,6 +483,9 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map) {
       options = typeof options === 'undefined' ? {} : options;
       var place = new Place(null, {input: true});
       this.add(place, {at: options.at != null ? options.at : this.length - 1});
+    },
+    resetInput: function() {
+      this.find('_input')._element.find('textarea').val('').focus();
     }
   });
 
