@@ -10,14 +10,7 @@ app.config(function($locationProvider) {
   $locationProvider.html5Mode(true);
 });
 
-app.run(function($rootScope) {
-
-});
-
-
-// --- Controllers ---
-//
-app.controller('AppCtrl', function($scope, $location, SavedPlaces, SearchedPlaces) {
+app.run(function($location, SavedPlaces) {
   var path = $location.path();
   if (path === '/') {
     SavedPlaces.initEmpty();
@@ -25,6 +18,13 @@ app.controller('AppCtrl', function($scope, $location, SavedPlaces, SearchedPlace
     var id = /^\/(.+)$/.exec(path)[1];
     SavedPlaces.fetchProject(id);
   }
+});
+
+
+// --- Controllers ---
+//
+app.controller('AppCtrl', function($scope, SearchedPlaces) {
+  this.showDropzone = false;
 
   var lastTerm;
   $scope.$on('newSearchTerm', function(e, term, inputModel) {
@@ -34,7 +34,7 @@ app.controller('AppCtrl', function($scope, $location, SavedPlaces, SearchedPlace
         inputModel._loading = false;
       });
     }
-  })
+  });
 });
 
 
@@ -156,15 +156,14 @@ app.directive('mdPlaceInput', function() {
 });
 
 
-app.directive('mdSortablePlaces', function() {
+app.directive('mdSortablePlaces', function(SavedPlaces) {
   return function(scope, element, attrs) {
     var contents;
     element.sortable({
-      appendTo: '.ly-app',
-      cursor: 'move',
-      helper: 'clone',
-      opacity: '.9',
-      placeholder: 'md-place-sort-placeholder md-place saved-places',
+      appendTo:    '.ly-app',
+      cursor:      'move',
+      helper:      'clone',
+      placeholder: 'md-place-item md-place-item-sort-placeholder',
       start: function(event, ui) {
         if (!ui.item.scope().place._input) {
           scope.$apply(function() { scope.AppCtrl.showDropzone = true; });
@@ -172,41 +171,38 @@ app.directive('mdSortablePlaces', function() {
         contents = element.contents();
         var placeholder = element.sortable('option', 'placeholder');
         if (placeholder && placeholder.element) {
-          contents = contents.not(
-            element.find(
-              "." + placeholder.element()
-                               .attr('class')
-                               .split(/\s+/).join('.')
-            ));
+          contents = contents.not(element.find(
+            "." + placeholder.element().attr('class').split(/\s+/).join('.')
+          ));
         }
         ui.item._sortable = {initIndex: ui.item.index()};
-        ui.placeholder.html(ui.item.contents().clone()).css({opacity: 0.5});
+        ui.placeholder.css('height', ui.item.height());
       },
       update: function(event, ui) {
-        if (!scope.AppCtrl.droppedItem) {
+        if (!scope.AppCtrl.droppedItemIndex) {
           ui.item._sortable.endIndex = ui.item.index();
         }
       },
       stop: function(event, ui) {
         element.sortable('cancel');
         contents.detach().appendTo(element);
-        if (scope.AppCtrl.droppedItem) {
-          scope.$apply(function() {
-            SideCtrl.places.splice(scope.AppCtrl.droppedItem.scope().place);
-          });
-          delete scope.AppCtrl.droppedItem;
-        } else if ('endIndex' in ui.item._sortable) {
-          var place = SavedPlaces.at(ui.item._sortable.initIndex);
-          SavedPlaces.remove(place, {silent: true});
-          SavedPlaces.add(place, {at: ui.item._sortable.endIndex});
-        }
-        scope.$apply(function() { scope.AppCtrl.showDropzone = false; });
+        scope.$apply(function() {
+          if (scope.AppCtrl.droppedItemIndex) {
+            SavedPlaces.places.splice(scope.AppCtrl.droppedItemIndex, 1);
+            delete scope.AppCtrl.droppedItemIndex;
+          } else if ('endIndex' in ui.item._sortable) {
+            var place = SavedPlaces.places.splice(ui.item._sortable.initIndex, 1)[0];
+            SavedPlaces.places.splice(ui.item._sortable.endIndex, 0, place);
+          }
+          scope.AppCtrl.showDropzone = false;
+        });
       }
     });
 
-    scope.$watch('SideCtrl.places.length', function() {
-      element.sortable('refresh');
-    });
+    scope.$watch(
+      function() { return SavedPlaces.places.length },
+      function() { element.sortable('refresh'); }
+    );
   }
 })
 
@@ -215,10 +211,10 @@ app.directive('mdDropZone', function($timeout) {
   return {
     link: function(scope, element, attrs) {
       element.droppable({
-        accept: '.js-saved-place',
+        accept:     '[md-place]',
         hoverClass: 'md-drop-zone-hover',
         drop: function(event, ui) {
-          scope.AppCtrl.droppedItem = ui.draggable;
+          scope.AppCtrl.droppedItemIndex = ui.draggable.index();
         }
       });
     }

@@ -1,5 +1,7 @@
 .md-place-item {
+  background-color: #FFF;
   border-bottom: 1px solid $blue;
+  list-style: none;
 }
 
 .md-place-inner {
@@ -68,4 +70,11 @@
   ~ .md-place-body {
     margin-right: 40px;
   }
+}
+
+.md-place-item-sort-placeholder {}
+
+.ly-app > .md-place-item {
+  border: 1px solid $blue;
+  background-color: rgba(#FFF, 0.7);
 }
