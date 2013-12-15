@@ -213,6 +213,30 @@ app.directive('mdDropZone', function($timeout, $rootScope) {
 });
 
 
+app.directive('mdShareModal', function($animate, UI) {
+  return {
+    controllerAs: 'MdShareModalCtrl',
+    controller: function($scope) {},
+    link: function(scope, element, attrs, Ctrl) {
+
+      function bounceUpAnimation() {
+        var child = element.children('.cp-modal-content');
+        $animate.addClass(child, 'bounce-up-effect', function() {
+          child.css('display', 'none');
+          child.removeClass('bounce-up-effect');
+          scope.$apply(function() { UI.showShareModal = false; });
+          child.css('display', '');
+        });
+      }
+
+      Ctrl.send = function() {
+        bounceUpAnimation();
+      };
+    }
+  };
+});
+
+
 // --- Services ---
 //
 app.factory('Map', function(BackboneEvents) {
@@ -419,7 +443,7 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
 });
 
 
-app.factory('Route', function(Backbone, Place, DirectionsRenderer, Map, $location, $http, PlacesService, $q) {
+app.factory('Route', function(Place) {
   var Route = Backbone.Collection.extend({
     model: Place,
     initialize: function() {}
@@ -599,4 +623,9 @@ app.value('validateEmail', function(email) {
 });
 
 
-app.value('UI', {showDropzone: false});
+app.value('UI', {
+  showDropzone:       false,
+  showShareModal:     false,
+  showDirectionModal: false,
+  directionMode:     'none'
+});

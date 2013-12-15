@@ -25,8 +25,8 @@
   <!-- Map Panel -->
   <div class="ly-map-panel">
     <div class="ly-panel-toolbar cp-toolbar">
-      <a href class="cp-toolbar-button right"><i class="fa fa-plus"></i></a>
-      <a href class="cp-toolbar-button right"><i class="fa fa-question-circle"></i></a>
+      <a href class="cp-toolbar-button right" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Create a new list"><i class="fa fa-plus"></i></a>
+      <a href class="cp-toolbar-button right" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Help"><i class="fa fa-question-circle"></i></a>
       <h1 href class="cp-toolbar-title">Map Project Title</h1>
     </div>
 
@@ -41,9 +41,10 @@
   <!-- Side Panel -->
   <div class="ly-side-panel md-side-panel">
     <div class="ly-panel-toolbar cp-toolbar">
-      <a href class="cp-toolbar-button left" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Directions"><i class="fa fa-location-arrow"></i></a>
-      <a href class="cp-toolbar-button left" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Zoom map to all markers"><i class="fa fa-arrows-alt"></i></a>
-      <a href class="cp-toolbar-button right" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Send this list to friends"><i class="fa fa-share-square"></i></a>
+      <a href class="cp-toolbar-button left" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Directions" ng-click="UI.showDirectionModal = true"><i class="fa fa-location-arrow"></i></a>
+      <a href class="cp-toolbar-button left" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Zoom map to all markers" ng-click=""><i class="fa fa-arrows-alt"></i></a>
+      <a href class="cp-toolbar-button right" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Save & Send to my email" ng-click="UI.showShareModal = true"><i class="fa fa-floppy-o"></i></a>
+      <a href class="cp-toolbar-button right" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Share with friends" ng-click="UI.showShareModal = true"><i class="fa fa-share-square"></i></a>
     </div>
 
     <div class="ly-side-panel-inner">
@@ -72,9 +73,37 @@
 
 
   <!-- Modals -->
-  <div class="md-share-modal" ng-class="{show: AppCtrl.showShareModal}" md-share-modal>
-    <div class="md-share-modal-content">
-      <div class="md-share-modal-inner">
+  <div class="cp-modal scale-effect" ng-class="{show: UI.showDirectionModal}">
+    <div class="cp-modal-content">
+      <div class="md-direction-options-modal">
+        <div class="md-direction-modal-blocks">
+          <div class="md-direction-modal-option-block" ng-class="{active: UI.directionMode == 'linear'}">
+            <a href class="md-direction-modal-option-block-button" ng-click="UI.directionMode = 'linear'">
+              <img src="/img/direction-mode-linear.png">
+            </a>
+          </div>
+          <div class="md-direction-modal-option-block" ng-class="{active: UI.directionMode == 'sunburst'}">
+            <a href class="md-direction-modal-option-block-button" ng-click="UI.directionMode = 'sunburst'">
+              <img src="/img/direction-mode-sunburst.png">
+            </a>
+          </div>
+          <div class="md-direction-modal-option-block" ng-class="{active: UI.directionMode == 'none'}">
+            <a href class="md-direction-modal-option-block-button" ng-click="UI.directionMode = 'none'">
+              <img src="/img/direction-mode-none.png">
+            </a>
+          </div>
+        </div>
+        <div class="md-direction-modal-footer">
+          <p class="md-direction-modal-footer-instruction">Pick a direction mode.</p>
+          <a href class="md-direction-modal-footer-button" ng-click="UI.showDirectionModal = false">Cancel</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cp-modal slide-up-effect" ng-class="{show: UI.showShareModal}" md-share-modal>
+    <div class="cp-modal-content">
+      <div class="md-share-modal">
         <form class="form-horizontal" name="MdShareModalCtrl.formValidation">
           <div class="form-group">
             <label for="share-modal-email" class="col-sm-3 control-label">Your Email</label>
@@ -98,7 +127,7 @@
           </div>
           <div class="form-group">
             <div class="col-sm-offset-3 col-sm-9">
-              <button type="button" class="btn btn-default" ng-click="AppCtrl.showShareModal = false">Cancel</button>
+              <button type="button" class="btn btn-default" ng-click="UI.showShareModal = false">Cancel</button>
               <button type="submit" class="btn btn-primary" ng-click="MdShareModalCtrl.send()">Send</button>
               <p class="help-block">By press "Send", you agree to our term and use. <a href="/terms.html">Read more</a>.</p>
             </div>
@@ -108,35 +137,7 @@
     </div>
   </div>
 
-  <div class="cp-modal" ng-class="{show: AppCtrl.showDirectionModal}">
-    <div class="cp-modal-content">
-      <div class="md-direction-options-modal">
-        <div class="md-direction-modal-blocks">
-          <div class="md-direction-modal-option-block" ng-class="{active: AppCtrl.directionMode == 'linear'}">
-            <a href class="md-direction-modal-option-block-button" ng-click="AppCtrl.directionMode = 'linear'">
-              <img src="/img/direction-mode-linear.png">
-            </a>
-          </div>
-          <div class="md-direction-modal-option-block" ng-class="{active: AppCtrl.directionMode == 'sunburst'}">
-            <a href class="md-direction-modal-option-block-button" ng-click="AppCtrl.directionMode = 'sunburst'">
-              <img src="/img/direction-mode-sunburst.png">
-            </a>
-          </div>
-          <div class="md-direction-modal-option-block" ng-class="{active: AppCtrl.directionMode == 'none'}">
-            <a href class="md-direction-modal-option-block-button" ng-click="AppCtrl.directionMode = 'none'">
-              <img src="/img/direction-mode-none.png">
-            </a>
-          </div>
-        </div>
-        <div class="md-direction-modal-footer">
-          <p class="md-direction-modal-footer-instruction">Pick a direction mode.</p>
-          <a href class="md-direction-modal-footer-button" ng-click="AppCtrl.showDirectionModal = false">Cancel</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="cp-modal-overlay"></div>
+  <div class="cp-modal-overlay" ng-click="UI.showDirectionModal = false; UI.showShareModal = false"></div>
 </div>
 
 
