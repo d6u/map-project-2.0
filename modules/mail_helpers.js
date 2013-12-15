@@ -1,5 +1,6 @@
 
 var mailer = require('nodemailer');
+var Q      = require('q');
 var smtp   = mailer.createTransport('SMTP', {
   host: 'smtp.mandrillapp.com',
   port: 587,
@@ -24,6 +25,8 @@ module.exports = {
   },
 
   sendConfirmationEmail: function(user) {
+    var deferred = Q.defer();
+
     var confirmLink = hostname + "confirm/" + user._id;
 
     var options = {
@@ -36,10 +39,14 @@ module.exports = {
     smtp.sendMail(options, function(err, res){
       if (err) {
         console.warn(err);
+        deferred.reject();
       } else {
         console.log("Message sent to " + user.e + ": " + res.message);
+        deferred.resolve();
       }
     });
+
+    return deferred.promise;
   },
 
   // sender is a user db object

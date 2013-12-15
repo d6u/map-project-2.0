@@ -214,7 +214,7 @@ app.directive('mdDropZone', function($timeout, $rootScope) {
 });
 
 
-app.directive('mdSaveModal', function($http, UI, $location) {
+app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces) {
   return {
     controllerAs: 'MdSaveModalCtrl',
     controller: function($scope) {
@@ -224,8 +224,8 @@ app.directive('mdSaveModal', function($http, UI, $location) {
       this.save = function() {
         if (this.form.$valid) {
           if (!this.list.title) this.list.title = 'Untitled list';
-          $http.post('/save_list', this.list).success(function(data) {
-            $location.path(data.list.id);
+          $http.post('/save_user', this.list).success(function(user) {
+            SavedPlaces.save(user);
           });
           UI.hideAllModal();
         }
@@ -541,7 +541,7 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, PlacesService, $q) 
 });
 
 
-app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $rootScope, UI, BackboneEvents) {
+app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $rootScope, UI, BackboneEvents, $http) {
 
   var routes = [];
   var routeEditableListeners = [];
@@ -553,13 +553,17 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       if (path === '/') {
         this.addInputModel();
       } else {
-        this.url = path + '/places';
-        this.fetch();
+        this.fetch(path);
+        this.addInputModel();
+        this.turnOnAutoSave();
       }
 
       this.on('add', function(model) {
         model.getMarker().setIcon('/img/location-icon-saved-place.png');
+        this.trigger('update');
       });
+
+      this.on('sort', function() { this.trigger('update'); });
 
       var _this = this;
       this.on('sort add remove reset', this.renderDirections);
@@ -569,7 +573,6 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
 
       _.extend(this, BackboneEvents);
       this.inState('complexRoutes', function() {
-        log('enter complexRoutes');
         _this.resetRoutes();
       });
     },
@@ -593,7 +596,11 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
         this.leave('complexRoutes');
         this.resetRoutes();
       }
-      if (UI.directionMode != 'none') var places = this.select(function(p) { return !p._input; });
+      if (UI.directionMode != 'none') {
+        var places = this.select(function(p) { return !p._input; });
+      } else {
+        this.trigger('update');
+      }
       if (typeof places === 'undefined' || places <= 1) return;
       switch (UI.directionMode) {
         case 'linear':
@@ -624,6 +631,8 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
           this.enableRoutesEditor(places);
           break;
       }
+
+      this.trigger('update');
     },
 
     resetRoutes: function() {
@@ -736,6 +745,74 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
         var route = new Route([start, end], {cancelableRoute: true});
         routes.push(route);
       }
+
+      this.trigger('update');
+    },
+
+
+    // Server Communication
+    //
+    save: function(user) {
+      var places = this.select(function(p) { return !p._input });
+      var places = _.map(places, function(p, i) {
+        return {
+          order:         i,
+          name:          p.get('name'),
+          address:       p.get('formatted_address'),
+          cover_picture: p.get('cover_picture'),
+          location:      p.get('geometry').location.toUrlValue(),
+          reference:     p.get('reference')
+        };
+      });
+
+      var data = {
+        mode:     UI.directionMode,
+        owner_id: user._id,
+        shared:   [],
+        places:   places
+      };
+
+      if (UI.directionMode === 'customized') {
+        data.routes = _.map(routes, function(r) {
+          return r.map(function(p) {
+            return p.get('geometry').location.toUrlValue();
+          });
+        });
+      }
+
+      if (this._autoSave) {
+        $http.post($location.path(), {data: data});
+      } else {
+        var _this = this;
+        $http.post('/save_list', {data: data}).success(function(data) {
+          $location.path(data._id);
+          _this.turnOnAutoSave();
+        });
+      }
+    },
+
+    fetch: function(path) {
+      var _this = this;
+      $http.get(path + '/data').success(function(data) {
+        UI.directionMode = data.mode;
+        for (var i = data.places.length - 1; i >= 0; i--) {
+          var attrs = data.places[i];
+          var coord = /(.+),(.+)/.exec(attrs.location);
+          attrs.geometry = {location: new google.maps.LatLng(coord[1], coord[2])};
+          var place = new Place(attrs);
+          place.getMarker().setIcon('/img/location-icon-saved-place.png');
+          _this.unshift(place, {silent: true});
+        }
+        _this.save({});
+      });
+    },
+
+    turnOnAutoSave: function() {
+      this._autoSave = true;
+      var _this = this;
+      this.on('update', function() {
+        _this.save({});
+      });
     }
 
   });
