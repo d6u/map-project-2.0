@@ -183,8 +183,8 @@ app.directive('mdSortablePlaces', function(SavedPlaces, UI, $rootScope) {
             delete $rootScope.droppedItemIndex;
           } else if ('endIndex' in ui.item._sortable) {
             var place = SavedPlaces.at(ui.item._sortable.initIndex);
-            SavedPlaces.remove(place);
-            SavedPlaces.add(place, {at: ui.item._sortable.endIndex});
+            SavedPlaces.remove(place, {silent: true});
+            SavedPlaces.add(place, {at: ui.item._sortable.endIndex, silent: true});
             SavedPlaces.trigger('sort');
           }
           UI.showDropzone = false;
@@ -612,7 +612,10 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService) {
         for (var i = 0; i < leg.steps.length; i++) {
           path = path.concat(leg.steps[i].path);
         }
-        this._polylines.push(createPolyline(path, options, leg.duration.text));
+        this._polylines.push(
+          createPolyline(path, options,
+                         leg.distance.text+', '+leg.duration.text)
+        );
       }
     };
 
