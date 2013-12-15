@@ -542,6 +542,8 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       switch (UI.directionMode) {
         case 'linear':
           routes.push(new Route(places));
+          places[places.length - 1].getMarker().setIcon('/img/location-icon-dest.png');
+          places[0].getMarker().setIcon('/img/location-icon-start-point.png');
           break;
         case 'sunburst':
           var first  = places[0];
@@ -550,6 +552,7 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
           for (var i = 0; i < pairs.length; i++) {
             routes.push(new Route(pairs[i]));
           }
+          first.getMarker().setIcon('/img/location-icon-start-point.png');
           break;
         case 'sunburst-reverse':
           var last   = places[places.length - 1];
@@ -558,6 +561,7 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
           for (var i = 0; i < pairs.length; i++) {
             routes.push(new Route(pairs[i]));
           }
+          last.getMarker().setIcon('/img/location-icon-dest.png');
           break;
         case 'customized':
 
@@ -568,6 +572,10 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
     resetRoutes: function() {
       for (var i = 0; i < routes.length; i++) { routes[i].reset(); }
       routes = [];
+      for (var i = 0; i < this.models.length; i++) {
+        var m = this.models[i];
+        if (!m._input) m.getMarker().setIcon('/img/location-icon-saved-place.png');
+      };
     }
 
   });
