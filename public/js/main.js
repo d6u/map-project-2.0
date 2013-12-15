@@ -447,16 +447,40 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
 app.factory('Route', function(Place, DirectionsRenderer) {
   var Route = Backbone.Collection.extend({
     model: Place,
-    initialize: function(places) {
+    initialize: function(places, options) {
       var _this = this;
+      var cancelable = options && options.cancelableRoute;
+
       if (places.length > 1) {
         this._renderer = DirectionsRenderer.renderDirectionsWith(places);
+        if (cancelable) this.makeRouteCancelable();
       }
 
       this.on('reset', function() {
-        if (typeof this._renderer != 'undefined')
-          this._renderer.removeDirections();
+        if (typeof this._renderer != 'undefined') this._renderer.removeDirections();
       });
+
+      this.on('add', function(model) {
+        if (typeof this._renderer != 'undefined') this._renderer.removeDirections();
+        this._renderer = DirectionsRenderer.renderDirectionsWith(this.models);
+        if (cancelable) this.makeRouteCancelable();
+      });
+    },
+
+    // for Complex routes
+    //
+    makeRouteCancelable: function() {
+      var _this = this;
+      this._renderer.on('stabilized', function() {
+        var polylines = _this._renderer.getPolylines();
+        for (var i = 0; i < polylines.length; i++) {
+          google.maps.event.addListenerOnce(polylines[i], 'rightclick', function() {
+            // --- TODO ---
+            // make the behavior more intelligent
+            this.setMap(null);
+          });
+        }
+      })
     }
   });
 
@@ -586,7 +610,6 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       for (var i = 0; i < this.models.length; i++) {
         var m = this.models[i];
         if (!m._input) m.getMarker().setIcon('/img/location-icon-saved-place.png');
-        delete m._routeEditable;
       };
       this.cleanUpRoutesEditor();
     },
@@ -595,9 +618,10 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
     // Routes Editor
     //
     enableRoutesEditor: function(places) {
-      var event     = google.maps.event;
-      _.select(places, function(p) { return !p._routeEditable; })
-      .forEach(function(p) {
+      this.cleanUpRoutesEditor();
+      var event = google.maps.event;
+      var _this = this;
+      _.forEach(places, function(p) {
         p._routeEditable = true;
 
         // Mousedown
@@ -634,19 +658,18 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
               var end = e.latLng;
               if (start != end) {
                 valid = true;
-                polyline.setPath([start, e.latLng]);
+                _this.addComplexRoute(start, end);
               }
               cleanUp();
-              log([start, e.latLng]);
             });
           });
 
           var domMouseupListener = event.addDomListenerOnce(document, 'mouseup', function(e) {
-            if (!valid) polyline.setMap(null);
             cleanUp();
           });
 
           function cleanUp() {
+            polyline.setMap(null);
             map.setOptions({draggable: true});
             event.removeListener(mapMousemoveListener);
             for (var i = 0; i < markerMouseoverListeners.length; i++) {
@@ -668,6 +691,29 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       for (var i = 0; i < routeEditableListeners.length; i++) {
         google.maps.event.removeListener(routeEditableListeners[i]);
       }
+    },
+
+
+    // Complex Route Renderer
+    //
+    addComplexRoute: function(start, end) {
+      var start = this.find(function(p) { return (!p._input && p.get('geometry').location.equals(start)) });
+      var end   = this.find(function(p) { return (!p._input && p.get('geometry').location.equals(end)) });
+
+      var route = _.find(routes, function(r) {
+        return r.at(0) === end || r.at(r.length - 1) === start;
+      });
+
+      if (route) {
+        if (route.at(0) === end) {
+          route.unshift(start);
+        } else {
+          route.push(end);
+        }
+      } else {
+        var route = new Route([start, end], {cancelableRoute: true});
+        routes.push(route);
+      }
     }
 
   });
@@ -676,7 +722,7 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
 });
 
 
-app.factory('DirectionsRenderer', function(Map, DirectionsService) {
+app.factory('DirectionsRenderer', function(Map, DirectionsService, BackboneEvents) {
 
   var colorCounter = 0;
   function randomColor() {
@@ -725,14 +771,20 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService) {
                          leg.distance.text+', '+leg.duration.text)
         );
       }
+      this.trigger('stabilized');
     };
 
     this.removeDirections = function() {
       for (var i = 0; i < this._polylines.length; i++) {
         this._polylines[i].setMap(null);
       };
-    }
+    };
+
+    this.getPolylines = function() {
+      return this._polylines;
+    };
   }
+  _.extend(Renderer.prototype, BackboneEvents);
 
 
   var service  = {
