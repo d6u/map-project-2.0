@@ -9,5 +9,8 @@
     "express": "3.4.5",
     "jade": "*",
     "nodemailer": "0.5.x"
+  },
+  "devDependencies": {
+    "karma": "~0.10.7"
   }
 }

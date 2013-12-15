@@ -36,6 +36,6 @@ app.post('/:list_id'           , require('./routes/edit_list.js'));
 app.get( '/:list_id/data'      , require('./routes/get_list_data.js'));
 
 
-http.createServer(app).listen(app.get('port'), function(){
+http.createServer(app).listen(app.get('port'), function() {
   console.log('Express server listening on port ' + app.get('port'));
 });
