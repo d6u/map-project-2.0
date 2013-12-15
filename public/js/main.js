@@ -214,6 +214,28 @@ app.directive('mdDropZone', function($timeout, $rootScope) {
 });
 
 
+app.directive('mdSaveModal', function($http, UI, $location) {
+  return {
+    controllerAs: 'MdSaveModalCtrl',
+    controller: function($scope) {
+      // this.form
+      this.list = {};
+
+      this.save = function() {
+        if (this.form.$valid) {
+          if (!this.list.title) this.list.title = 'Untitled list';
+          $http.post('/save_list', this.list).success(function(data) {
+            $location.path(data.list.id);
+          });
+          UI.hideAllModal();
+        }
+      }
+    },
+    link: function(scope, element, attrs) {}
+  };
+});
+
+
 app.directive('mdShareModal', function($animate, UI) {
   return {
     controllerAs: 'MdShareModalCtrl',
@@ -837,5 +859,12 @@ app.value('UI', {
   showDropzone:       false,
   showShareModal:     false,
   showDirectionModal: false,
-  directionMode:     'none'
+  showSaveModal:      false,
+  directionMode:      'none',
+
+  hideAllModal: function() {
+    this.showDirectionModal = false;
+    this.showShareModal     = false;
+    this.showSaveModal      = false
+  }
 });
