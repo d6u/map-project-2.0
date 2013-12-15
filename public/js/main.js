@@ -449,7 +449,7 @@ app.factory('Route', function(Place, DirectionsRenderer) {
     model: Place,
     initialize: function(places) {
       var _this = this;
-      if (places.length) {
+      if (places.length > 1) {
         this._renderer = DirectionsRenderer.renderDirectionsWith(places);
       }
 
@@ -537,21 +537,29 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
     //
     renderDirections: function() {
       this.resetRoutes();
+      if (UI.directionMode != 'none')
+        var places = this.select(function(model) { return !model._input; });
       switch (UI.directionMode) {
         case 'linear':
-          var places = this.select(function(model) { return !model._input; });
           routes.push(new Route(places));
           break;
         case 'sunburst':
-
+          var first  = places[0];
+          var places = places.slice(1, places.length);
+          var pairs  = _.map(places, function(p) { return [first, p]; });
+          for (var i = 0; i < pairs.length; i++) {
+            routes.push(new Route(pairs[i]));
+          }
           break;
         case 'sunburst-reverse':
-
+          var last   = places[places.length - 1];
+          var places = places.slice(0, places.length - 1);
+          var pairs  = _.map(places, function(p) { return [p, last]; });
+          for (var i = 0; i < pairs.length; i++) {
+            routes.push(new Route(pairs[i]));
+          }
           break;
         case 'customized':
-
-          break;
-        case 'none':
 
           break;
       }
