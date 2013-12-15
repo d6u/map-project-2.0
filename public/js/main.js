@@ -747,6 +747,12 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService, BackboneEvent
     return polyline;
   }
 
+  function generateDirectionLink(startL, destL) {
+    return "http://maps.google.com/?saddr="+startL.toUrlValue()+
+           "&daddr="+destL.toUrlValue()+
+           "&directionsmode=driving";
+  }
+
 
   // Renderer class
   //
@@ -766,10 +772,13 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService, BackboneEvent
         for (var i = 0; i < leg.steps.length; i++) {
           path = path.concat(leg.steps[i].path);
         }
-        this._polylines.push(
-          createPolyline(path, options,
-                         leg.distance.text+', '+leg.duration.text)
-        );
+
+        var content = leg.distance.text+', '+leg.duration.text+
+            '<br><a href="'+
+            generateDirectionLink(leg.start_location, leg.end_location)+
+            '" target="_blank">Get step by step directions from Google</a>';
+
+        this._polylines.push(createPolyline(path, options, content));
       }
       this.trigger('stabilized');
     };
