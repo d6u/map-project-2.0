@@ -495,7 +495,7 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, PlacesService, $q) 
 });
 
 
-app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $rootScope, UI) {
+app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $rootScope, UI, BackboneEvents) {
 
   var routes = [];
   var routeEditableListeners = [];
@@ -520,6 +520,12 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       $rootScope.$watch('UI.directionMode', function() {
         _this.renderDirections();
       });
+
+      _.extend(this, BackboneEvents);
+      this.inState('complexRoutes', function() {
+        log('enter complexRoutes');
+        _this.resetRoutes();
+      });
     },
 
     // Custom Actions
@@ -537,7 +543,10 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
     // Render Directions
     //
     renderDirections: function() {
-      if (UI.directionMode != 'customized') this.resetRoutes();
+      if (UI.directionMode != 'customized') {
+        this.leave('complexRoutes');
+        this.resetRoutes();
+      }
       if (UI.directionMode != 'none') var places = this.select(function(p) { return !p._input; });
       if (typeof places === 'undefined' || places <= 1) return;
       switch (UI.directionMode) {
@@ -565,6 +574,7 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
           last.getMarker().setIcon('/img/location-icon-dest.png');
           break;
         case 'customized':
+          this.enter('complexRoutes');
           this.enableRoutesEditor(places);
           break;
       }
