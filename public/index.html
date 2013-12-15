@@ -76,27 +76,41 @@
   <div class="cp-modal scale-effect" ng-class="{show: UI.showDirectionModal}">
     <div class="cp-modal-content">
       <div class="md-direction-options-modal">
-        <div class="md-direction-modal-blocks">
+
+        <!-- Options -->
+        <div class="md-direction-modal-body" ng-click="UI.showDirectionModal = false">
           <div class="md-direction-modal-option-block" ng-class="{active: UI.directionMode == 'linear'}">
-            <a href class="md-direction-modal-option-block-button" ng-click="UI.directionMode = 'linear'">
+            <a href class="md-direction-modal-option-block-button" bs-tooltip bs-tooltip-placement="top" bs-tooltip-title="One by one" ng-click="UI.directionMode = 'linear'" >
               <img src="/img/direction-mode-linear.png">
             </a>
           </div>
           <div class="md-direction-modal-option-block" ng-class="{active: UI.directionMode == 'sunburst'}">
-            <a href class="md-direction-modal-option-block-button" ng-click="UI.directionMode = 'sunburst'">
+            <a href class="md-direction-modal-option-block-button" bs-tooltip bs-tooltip-placement="top" bs-tooltip-title="Center to others" ng-click="UI.directionMode = 'sunburst'">
               <img src="/img/direction-mode-sunburst.png">
             </a>
           </div>
+          <div class="md-direction-modal-option-block" ng-class="{active: UI.directionMode == 'sunburst-reverse'}">
+            <a href class="md-direction-modal-option-block-button" bs-tooltip bs-tooltip-placement="top" bs-tooltip-title="Others come to center" ng-click="UI.directionMode = 'sunburst-reverse'">
+              <img src="/img/direction-mode-sunburst-reverse.png">
+            </a>
+          </div>
+          <div class="md-direction-modal-option-block" ng-class="{active: UI.directionMode == 'customized'}">
+            <a href class="md-direction-modal-option-block-button" bs-tooltip bs-tooltip-placement="top" bs-tooltip-title="Design complicated routes" ng-click="UI.directionMode = 'customized'">
+              <img src="/img/direction-mode-customized.png">
+            </a>
+          </div>
           <div class="md-direction-modal-option-block" ng-class="{active: UI.directionMode == 'none'}">
-            <a href class="md-direction-modal-option-block-button" ng-click="UI.directionMode = 'none'">
+            <a href class="md-direction-modal-option-block-button" bs-tooltip bs-tooltip-placement="top" bs-tooltip-title="No direction" ng-click="UI.directionMode = 'none'">
               <img src="/img/direction-mode-none.png">
             </a>
           </div>
         </div>
+
         <div class="md-direction-modal-footer">
           <p class="md-direction-modal-footer-instruction">Pick a direction mode.</p>
-          <a href class="md-direction-modal-footer-button" ng-click="UI.showDirectionModal = false">Cancel</a>
+          <a href class="md-direction-modal-footer-button btn btn-default" ng-click="UI.showDirectionModal = false">Cancel</a>
         </div>
+
       </div>
     </div>
   </div>
