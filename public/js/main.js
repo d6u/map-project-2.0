@@ -498,6 +498,7 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, PlacesService, $q) 
 app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $rootScope, UI) {
 
   var routes = [];
+  var routeEditableListeners = [];
 
   var SavedPlaces = Backbone.Collection.extend({
     model: Place,
@@ -536,9 +537,9 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
     // Render Directions
     //
     renderDirections: function() {
-      this.resetRoutes();
-      if (UI.directionMode != 'none')
-        var places = this.select(function(model) { return !model._input; });
+      if (UI.directionMode != 'customized') this.resetRoutes();
+      if (UI.directionMode != 'none') var places = this.select(function(p) { return !p._input; });
+      if (typeof places === 'undefined' || places <= 1) return;
       switch (UI.directionMode) {
         case 'linear':
           routes.push(new Route(places));
@@ -564,7 +565,7 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
           last.getMarker().setIcon('/img/location-icon-dest.png');
           break;
         case 'customized':
-
+          this.enableRoutesEditor(places);
           break;
       }
     },
@@ -575,7 +576,88 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       for (var i = 0; i < this.models.length; i++) {
         var m = this.models[i];
         if (!m._input) m.getMarker().setIcon('/img/location-icon-saved-place.png');
+        delete m._routeEditable;
       };
+      this.cleanUpRoutesEditor();
+    },
+
+
+    // Routes Editor
+    //
+    enableRoutesEditor: function(places) {
+      var event     = google.maps.event;
+      _.select(places, function(p) { return !p._routeEditable; })
+      .forEach(function(p) {
+        p._routeEditable = true;
+
+        // Mousedown
+        var markerListener = event.addListener(p.getMarker(), 'mousedown', function(e) {
+
+          var map   = Map.getMap();
+          var start = e.latLng;
+          var valid = false;
+
+          map.setOptions({draggable: false});
+
+          var polyline = new google.maps.Polyline({
+            clickable:     true,
+            strokeColor:  'red',
+            strokeOpacity: 1,
+            strokeWeight:  3,
+            map:           map
+          });
+
+          var mapMousemoveListener = event.addListener(map, 'mousemove', function(e) {
+            var end = e.latLng;
+            polyline.setPath([start, end]);
+          });
+
+          var markerMouseoverListeners = _.map(places, function(p) {
+            return event.addListener(p.getMarker(), 'mouseover', function(e) {
+              var end = e.latLng;
+              polyline.setPath([start, end]);
+            });
+          });
+
+          var markerMouseupListeners = _.map(places, function(p) {
+            return event.addListenerOnce(p.getMarker(), 'mouseup', function(e) {
+              var end = e.latLng;
+              if (start != end) {
+                valid = true;
+                polyline.setPath([start, e.latLng]);
+              }
+              cleanUp();
+              log([start, e.latLng]);
+            });
+          });
+
+          var domMouseupListener = event.addDomListenerOnce(document, 'mouseup', function(e) {
+            if (!valid) polyline.setMap(null);
+            cleanUp();
+          });
+
+          function cleanUp() {
+            map.setOptions({draggable: true});
+            event.removeListener(mapMousemoveListener);
+            for (var i = 0; i < markerMouseoverListeners.length; i++) {
+              event.removeListener(markerMouseoverListeners[i]);
+            }
+            for (var i = 0; i < markerMouseupListeners.length; i++) {
+              event.removeListener(markerMouseupListeners[i]);
+            }
+            event.removeListener(domMouseupListener);
+          }
+
+        }); // END of markerListener
+
+        routeEditableListeners.push(markerListener);
+      });
+    },
+
+    cleanUpRoutesEditor: function() {
+      for (var i = 0; i < routeEditableListeners.length; i++) {
+        google.maps.event.removeListener(routeEditableListeners[i]);
+      }
     }
 
   });
