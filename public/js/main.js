@@ -9,7 +9,7 @@ app.config(function($locationProvider) {
   $locationProvider.html5Mode(true);
 });
 
-app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI) {
+app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location) {
   $rootScope.SavedPlaces    = SavedPlaces;
   $rootScope.SearchedPlaces = SearchedPlaces;
   $rootScope.Map = Map;
@@ -18,7 +18,7 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI) {
   // md-sortable-places events
   //
   $rootScope.$on('placeRemoved', function(e, index) {
-    SavedPlaces.at(index).destory();
+    SavedPlaces.removePlaceAt(index);
   });
 
   $rootScope.$on('placeListSorted', function(e, sortResult) {
@@ -26,6 +26,21 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI) {
     SavedPlaces.remove(place, {silent: true});
     SavedPlaces.add(place, {at: sortResult.endIndex, silent: true});
     SavedPlaces.trigger('sort');
+  });
+
+  // init setup
+  //
+  var path = $location.path();
+  if (path === '/') {
+    SavedPlaces.addInputModel();
+  } else {
+    // this.fetch(path);
+    // this.addInputModel();
+    // this.turnOnAutoSave();
+  }
+
+  $rootScope.$watch('UI.directionMode', function(val, old) {
+    SavedPlaces.trigger('directionModeChanged', val);
   });
 });
 
@@ -494,26 +509,38 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
 
 
 app.factory('Route', function(Place, DirectionsRenderer) {
+
   var Route = Backbone.Collection.extend({
+
+    name: 'Route',
     model: Place,
+
     initialize: function(places, options) {
       var _this = this;
-      var cancelable = options && options.cancelableRoute;
+      // var cancelable = options && options.cancelableRoute;
 
-      if (places.length > 1) {
-        this._renderer = DirectionsRenderer.renderDirectionsWith(places);
-        if (cancelable) this.makeRouteCancelable();
-      }
+      this._renderer = DirectionsRenderer.renderDirectionsWith(places);
 
-      this.on('reset', function() {
-        if (typeof this._renderer != 'undefined') this._renderer.removeDirections();
-      });
+      // if (places.length > 1) {
+      //   this._renderer = DirectionsRenderer.renderDirectionsWith(places);
+      //   if (cancelable) this.makeRouteCancelable();
+      // }
 
-      this.on('add', function(model) {
-        if (typeof this._renderer != 'undefined') this._renderer.removeDirections();
-        this._renderer = DirectionsRenderer.renderDirectionsWith(this.models);
-        if (cancelable) this.makeRouteCancelable();
-      });
+      // this.on('reset', function() {
+      //   if (typeof this._renderer != 'undefined') this._renderer.removeDirections();
+      // });
+
+      // this.on('add', function(model) {
+      //   if (typeof this._renderer != 'undefined') this._renderer.removeDirections();
+      //   this._renderer = DirectionsRenderer.renderDirectionsWith(this.models);
+      //   if (cancelable) this.makeRouteCancelable();
+      // });
+    },
+
+    // Route Management
+    //
+    destroy: function() {
+      this._renderer.removeDirections();
     },
 
     // for Complex routes
@@ -576,40 +603,18 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
 
   var routes = [];
   var routeEditableListeners = [];
+  var dummyContext = {};
 
   var SavedPlaces = Backbone.Collection.extend({
+
     name: 'SavedPlaces',
     model: Place,
+
     initialize: function() {
-      var path = $location.path();
-      if (path === '/') {
-        this.addInputModel();
-      } else {
-        this.fetch(path);
-        this.addInputModel();
-        this.turnOnAutoSave();
-      }
-
-      this.on('add', function(model) {
-        model.getMarker().setIcon('/img/location-icon-saved-place.png');
-        this.trigger('update');
-      });
-
-      this.on('sort', function() { this.trigger('update'); });
-
-      var _this = this;
-      this.on('sort add remove reset', this.renderDirections);
-      $rootScope.$watch('UI.directionMode', function() {
-        _this.renderDirections();
-      });
-
-      _.extend(this, BackboneEvents);
-      this.inState('complexRoutes', function() {
-        _this.resetRoutes();
-      });
+      this.on('directionModeChanged', this.changeDirectionStrategy);
     },
 
-    // Custom Actions
+    // Input Model related
     //
     addInputModel: function(options) {
       options = typeof options === 'undefined' ? {} : options;
@@ -620,9 +625,35 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       this.find('_input')._element.find('textarea').val('').focus();
     },
 
+    // Place Management
+    //
+    removePlaceAt: function(index) {
+      var place = this.at(index);
+      this.remove(place);
+    },
+    getPlaces: function() {
+      return this.select(function(p) { return !p._input; });
+    },
 
     // Render Directions
     //
+    changeDirectionStrategy: function(mode) {
+      this.clearDirectionStrategy();
+      switch (mode) {
+        case 'none':
+          clearRoutes();
+          break;
+        case 'linear':
+          linearRouteUpdate();
+          this.on('sort add remove', linearRouteUpdate, dummyContext);
+          break;
+      }
+    },
+    clearDirectionStrategy: function() {
+      this.off(null, null, dummyContext);
+      // TODO
+    },
+
     renderDirections: function() {
       if (UI.directionMode != 'customized') {
         this.leave('complexRoutes');
@@ -676,7 +707,6 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       };
       this.cleanUpRoutesEditor();
     },
-
 
     // Routes Editor
     //
@@ -756,7 +786,6 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       }
     },
 
-
     // Complex Route Renderer
     //
     addComplexRoute: function(start, end) {
@@ -780,7 +809,6 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
 
       this.trigger('update');
     },
-
 
     // Server Communication
     //
@@ -849,7 +877,25 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
 
   });
 
-  return new SavedPlaces;
+  var service = new SavedPlaces;
+
+  // Render Directions
+  //
+  function clearRoutes() {
+    for (var i = 0; i < routes.length; i++) { routes[i].destroy(); }
+    routes = [];
+  }
+
+  function linearRouteUpdate() {
+    clearRoutes();
+    var places = service.getPlaces();
+    if (places.length > 1) {
+      var route = new Route(places);
+      routes.push(route);
+    }
+  }
+
+  return service;
 });
 
 
@@ -868,7 +914,7 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService, BackboneEvent
 
   function createPolyline(path, defaultOptions, infoWindowContent) {
     var options = _.extend({path: path}, defaultOptions);
-    polyline = new google.maps.Polyline(options);
+    var polyline = new google.maps.Polyline(options);
     polyline.addListener('mouseover', function() {
       var anchor = new google.maps.MVCObject;
       anchor.set('position', path[Math.floor(path.length / 2)]);
