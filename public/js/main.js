@@ -647,6 +647,14 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
           linearRouteUpdate();
           this.on('sort add remove', linearRouteUpdate, dummyContext);
           break;
+        case 'sunburst':
+          sunburstRouteUpdate();
+          this.on('sort add remove', sunburstRouteUpdate, dummyContext);
+          break;
+        case 'sunburst-reverse':
+          sunburstReverseRouteUpdate();
+          this.on('sort add remove', sunburstReverseRouteUpdate, dummyContext);
+          break;
       }
     },
     clearDirectionStrategy: function() {
@@ -892,6 +900,30 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
     if (places.length > 1) {
       var route = new Route(places);
       routes.push(route);
+    }
+  }
+
+  function sunburstRouteUpdate() {
+    clearRoutes();
+    var places = service.getPlaces();
+    if (places.length > 1) {
+      var first = places.shift();
+      for (var i = 0; i < places.length; i++) {
+        var route = new Route([first, places[i]]);
+        routes.push(route);
+      }
+    }
+  }
+
+  function sunburstReverseRouteUpdate() {
+    clearRoutes();
+    var places = service.getPlaces();
+    if (places.length > 1) {
+      var last = places.pop();
+      for (var i = 0; i < places.length; i++) {
+        var route = new Route([places[i], last]);
+        routes.push(route);
+      }
     }
   }
 
