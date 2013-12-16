@@ -1,6 +1,5 @@
-function log() {
-  console.log.apply(console, arguments);
-}
+"use strict";
+
 
 // --- mapApp ---
 //
@@ -15,6 +14,19 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI) {
   $rootScope.SearchedPlaces = SearchedPlaces;
   $rootScope.Map = Map;
   $rootScope.UI  = UI;
+
+  // md-sortable-places events
+  //
+  $rootScope.$on('placeRemoved', function(e, index) {
+    SavedPlaces.at(index).destory();
+  });
+
+  $rootScope.$on('placeListSorted', function(e, sortResult) {
+    var place = SavedPlaces.at(sortResult.initIndex);
+    SavedPlaces.remove(place, {silent: true});
+    SavedPlaces.add(place, {at: sortResult.endIndex, silent: true});
+    SavedPlaces.trigger('sort');
+  });
 });
 
 
@@ -91,7 +103,7 @@ app.directive('mdPlaceInput', function(SearchedPlaces) {
         string  = string.replace(/\n/g, '<br>');
         string  = string.replace(/ $/, '&nbsp;');
         string += '<br>';
-        span    = $('<span>');
+        var span = $('<span>');
         shadow.html(span.html(string));
         return shadow.height();
       }
@@ -175,24 +187,17 @@ app.directive('mdSortablePlaces', function(SavedPlaces, UI, $rootScope) {
       stop: function(event, ui) {
         element.sortable('cancel');
         contents.detach().appendTo(element);
-        scope.$apply(function() {
           if (typeof $rootScope.droppedItemIndex != 'undefined') {
-            var place = SavedPlaces.at($rootScope.droppedItemIndex);
-            SavedPlaces.remove(place);
-            place.trigger('destory');
+          scope.$emit('placeRemoved', $rootScope.droppedItemIndex);
             delete $rootScope.droppedItemIndex;
           } else if ('endIndex' in ui.item._sortable) {
-            var place = SavedPlaces.at(ui.item._sortable.initIndex);
-            SavedPlaces.remove(place, {silent: true});
-            SavedPlaces.add(place, {at: ui.item._sortable.endIndex, silent: true});
-            SavedPlaces.trigger('sort');
+          scope.$emit('placeListSorted', ui.item._sortable);
           }
-          UI.showDropzone = false;
-        });
+        scope.$apply(function() { UI.showDropzone = false; });
       }
     });
 
-    SavedPlaces.on('add remove reset sort destory', function() {
+    SavedPlaces.on('all', function() {
       element.sortable('refresh');
     });
   }
