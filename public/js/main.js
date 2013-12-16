@@ -538,16 +538,20 @@ app.factory('Route', function(Place, DirectionsRenderer) {
 
 
 app.factory('SearchedPlaces', function(Backbone, Place, Map, PlacesService, $q) {
+
   var SearchedPlaces = Backbone.Collection.extend({
+
     name: 'SearchedPlaces',
     model: Place,
+
     initialize: function() {
       this.on('reset', function(c, options) {
         for (var i = 0; i < options.previousModels.length; i++) {
-          options.previousModels[i].trigger('destory');
+          options.previousModels[i].trigger('remove');
         }
       });
     },
+
     searchWith: function(term) {
       var deferred = $q.defer();
       var _this = this;
@@ -561,6 +565,7 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, PlacesService, $q) 
       });
       return deferred.promise;
     }
+
   });
 
   return new SearchedPlaces;
