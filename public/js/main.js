@@ -495,6 +495,7 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
       });
     },
     getMarker: function() { return this._marker; },
+    getPosition: function() { return this.getMarker().getPosition(); },
 
     // View
     //
@@ -581,25 +582,11 @@ app.factory('Route', function(Place, DirectionsRenderer) {
     model: Place,
 
     initialize: function(places, options) {
-      var _this = this;
-      // var cancelable = options && options.cancelableRoute;
-
       this._renderer = DirectionsRenderer.renderDirectionsWith(places);
-
-      // if (places.length > 1) {
-      //   this._renderer = DirectionsRenderer.renderDirectionsWith(places);
-      //   if (cancelable) this.makeRouteCancelable();
-      // }
-
-      // this.on('reset', function() {
-      //   if (typeof this._renderer != 'undefined') this._renderer.removeDirections();
-      // });
-
-      // this.on('add', function(model) {
-      //   if (typeof this._renderer != 'undefined') this._renderer.removeDirections();
-      //   this._renderer = DirectionsRenderer.renderDirectionsWith(this.models);
-      //   if (cancelable) this.makeRouteCancelable();
-      // });
+      this.on('add', function() {
+        this._renderer.removeDirections();
+        this._renderer = DirectionsRenderer.renderDirectionsWith(this.models);
+      });
     },
 
     // Route Management
@@ -607,21 +594,16 @@ app.factory('Route', function(Place, DirectionsRenderer) {
     destroy: function() {
       this._renderer.removeDirections();
     },
-
-    // for Complex routes
-    //
-    makeRouteCancelable: function() {
-      var _this = this;
-      this._renderer.on('stabilized', function() {
-        var polylines = _this._renderer.getPolylines();
-        for (var i = 0; i < polylines.length; i++) {
-          google.maps.event.addListenerOnce(polylines[i], 'rightclick', function() {
-            // --- TODO ---
-            // make the behavior more intelligent
-            this.setMap(null);
-          });
-        }
-      })
+    connectableWith: function(connection) {
+      if (this.length <= 1) {
+        return false;
+      } else if ( this.at(0).getPosition().equals(connection.end) ) {
+        return -1;
+      } else if ( this.last().getPosition().equals(connection.start) ) {
+        return 1;
+      } else {
+        return false;
+      }
     }
   });
 
@@ -753,8 +735,27 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
         this.stopListening(this.models[i]);
       }
     },
-    connectPlaces: function(connection) {
-      console.log(connection);
+    connectPlaces: function(connection) { // start, end
+      var route, position;
+      for (var i = 0; i < routes.length; i++) {
+        if (position = routes[i].connectableWith(connection)) {
+          route = routes[i];
+          if (position === 1) { // end
+            var place = this.getPlaceWithLatlng(connection.end);
+            route.push(place);
+          } else { // start
+            var place = this.getPlaceWithLatlng(connection.start);
+            route.unshift(place);
+          }
+          return;
+        }
+      }
+      var startPlace = this.getPlaceWithLatlng(connection.start);
+      var endPlace   = this.getPlaceWithLatlng(connection.end);
+      routes.push(new Route([startPlace, endPlace]));
+    },
+    getPlaceWithLatlng: function(latLng) {
+      return this.find(function(p) { return p.getPosition().equals(latLng); });
     },
 
     // Server Communication
@@ -879,7 +880,7 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
         places[i].clearDrawer();
         places[i].activeDrawer(places);
       }
-    } else {
+    } else if (places[0]) {
       places[0].clearDrawer();
     }
   }
