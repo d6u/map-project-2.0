@@ -5,7 +5,9 @@
   flex-direction: column;
 }
 
-.md-info-panel-header {}
+.md-info-panel-header {
+  a { color: #FFF; }
+}
 
 .md-info-panel-header-content {
   font-size: 18px;
@@ -13,6 +15,7 @@
   background-color: $blue;
   color: #FFF;
   line-height: 1.4;
+  word-break: break-word;
 }
 
 .md-info-panel-body {
