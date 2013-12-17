@@ -15,6 +15,17 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $h
   $rootScope.Map = Map;
   $rootScope.UI  = UI;
 
+  $rootScope.displayAllMarkers = function() {
+    var bounds = new google.maps.LatLngBounds();
+    SavedPlaces.forEach(function(p) {
+      if (!p._input) bounds.extend(p.getPosition());
+    });
+    SearchedPlaces.forEach(function(p) {
+      bounds.extend(p.getPosition());
+    });
+    Map.fitBounds(bounds);
+  };
+
   // md-sortable-places events
   //
   $rootScope.$on('placeRemoved', function(e, index) {
@@ -76,6 +87,7 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $h
             SavedPlaces.addRoute(routes);
           }
           SavedPlaces.enableAutoSave();
+          $rootScope.displayAllMarkers();
         });
       });
 
