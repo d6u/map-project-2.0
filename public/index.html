@@ -209,7 +209,7 @@
     <div class="md-place-tail-label" ng-show="place._loading">
       <i class="fa fa-refresh fa-spin"></i>
     </div>
-    <div class="md-place-tail-label" ng-show="!place._loading && place._cancelable">
+    <div class="md-place-tail-label" ng-show="!place._loading && (SearchedPlaces.length || SearchedPlaces.hint.show)">
       <a href ng-click="mdPlaceInputCtrl.clearInput()"><i class="fa fa-times"></i></a>
     </div>
     <div class="md-place-body">

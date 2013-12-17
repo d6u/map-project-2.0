@@ -167,7 +167,7 @@ app.directive('mdPlace', function($compile, $templateCache, Map) {
 });
 
 
-app.directive('mdPlaceInput', function(SearchedPlaces) {
+app.directive('mdPlaceInput', function(SearchedPlaces, SavedPlaces) {
   return {
     controllerAs: 'mdPlaceInputCtrl',
     controller: function($scope, $element) {
@@ -218,6 +218,17 @@ app.directive('mdPlaceInput', function(SearchedPlaces) {
         }
       }
 
+      function saveFirstSearchResult() {
+        if ( SearchedPlaces.length ) {
+          var place = SearchedPlaces.at(0);
+          SearchedPlaces.remove(place);
+          var inputModel = SavedPlaces.find('_input');
+          var index = SavedPlaces.indexOf(inputModel);
+          SavedPlaces.add(place, {at: index});
+          SavedPlaces.resetInput();
+        }
+      }
+
 
       element.on('keydown', function(e) {
         switch (e.keyCode) {
@@ -227,9 +238,13 @@ app.directive('mdPlaceInput', function(SearchedPlaces) {
       });
 
       element.on('keypress', function(e) {
-        var char   = e.keyCode === 13 ? "\n" : String.fromCharCode(e.keyCode);
+        var char   = String.fromCharCode(e.keyCode);
         var string = textarea.val() + char;
         updateDimensions(string);
+        if (e.keyCode === 13) {
+          e.preventDefault();
+          saveFirstSearchResult();
+        }
       });
 
       element.on('keyup', function(e) {
