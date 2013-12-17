@@ -835,7 +835,7 @@ app.factory('Route', function(Place, DirectionsRenderer) {
 });
 
 
-app.factory('SearchedPlaces', function(Backbone, Place, Map, PlacesService, $q) {
+app.factory('SearchedPlaces', function($rootScope, Backbone, Place, Map, PlacesService, $q) {
 
   var SearchedPlaces = Backbone.Collection.extend({
 
@@ -854,6 +854,7 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, PlacesService, $q) 
       var deferred = $q.defer();
       var _this = this;
       PlacesService.textSearch(term, function(result, status) {
+        $rootScope.$apply(function() {
         if (status === google.maps.places.PlacesServiceStatus.OK) {
           _this.set(result.splice(0, 5));
           deferred.resolve();
@@ -861,6 +862,7 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, PlacesService, $q) 
           _this.reset();
           deferred.reject();
         }
+      });
       });
       return deferred.promise;
     }
