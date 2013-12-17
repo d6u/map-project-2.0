@@ -337,8 +337,6 @@ app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $
 
         if (this.form.$valid) {
           if ($location.path() === '/') {
-            return SavedPlaces.save();
-          } else {
             var deferred = $q.defer();
             if (!this.list.title) $rootScope.list.name = this.list.title = 'Untitled list';
             $http.post(
@@ -351,6 +349,8 @@ app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $
               deferred.resolve(SavedPlaces.save({user: user}));
             });
             return deferred.promise;
+          } else {
+            return SavedPlaces.save();
           }
         } else {
           this.formHelp.senderHelpWarning = true;
@@ -391,10 +391,11 @@ app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $
         if (saved) {
           saved.then(function() {
             $http.post(
-              "/send_email?self_only=true",
+              "/send_email",
               {
-                sender:  Ctrl.list.sender,
-                list_id: scope.list._id
+                self_only: true,
+                sender:    Ctrl.list.sender,
+                list_id:   scope.list._id
               }
             );
           });
