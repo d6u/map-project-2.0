@@ -446,9 +446,7 @@ app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $
 // --- Services ---
 //
 app.factory('Map', function(BackboneEvents) {
-  var mouseoverInfoWindow = new google.maps.InfoWindow({
-    disableAutoPan: true
-  });
+  var mouseoverInfoWindow = new google.maps.InfoWindow();
 
   var mapStyles = [
     {
