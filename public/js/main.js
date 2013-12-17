@@ -40,7 +40,7 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location) {
   }
 
   $rootScope.$watch('UI.directionMode', function(val, old) {
-    SavedPlaces.trigger('directionModeChanged', val);
+    SavedPlaces.trigger('directionModeChanged', val, old);
   });
 });
 
@@ -410,7 +410,10 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
 
     initialize: function(attrs, options) {
       options = options || {};
-      if (this._input = options.input) return;
+      if (this._input = options.input) {
+        this.clearDrawer = _.noop;
+        return;
+      }
 
       this.getDetails();
 
@@ -503,7 +506,69 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
       this._element.on('mouseleave', function() {
         Map.closeMouseoverInfoWindow();
       });
+    },
+
+    // Route Editable
+    //
+    clearDrawer: function() {
+      google.maps.event.removeListener(this._routeEditableListener);
+    },
+    activeDrawer: function(places) {
+      var event = google.maps.event;
+      var _this = this;
+      this._routeEditableListener = event.addListener(this.getMarker(), 'mousedown', function(e) {
+        var map   = Map.getMap();
+        var start = e.latLng;
+        var valid = false;
+
+        map.setOptions({draggable: false});
+
+        var polyline = new google.maps.Polyline({
+          clickable:     true,
+          strokeColor:  'red',
+          strokeOpacity: 1,
+          strokeWeight:  3,
+          map:           map
+        });
+
+        var mapMousemoveListener = event.addListener(map, 'mousemove', function(e) {
+          var end = e.latLng;
+          polyline.setPath([start, end]);
+        });
+
+        var markerMouseoverListeners = _.map(places, function(p) {
+          return event.addListener(p.getMarker(), 'mouseover', function(e) {
+            var end = e.latLng;
+            polyline.setPath([start, end]);
+          });
+        });
+
+        var markerMouseupListeners = _.map(places, function(p) {
+          return event.addListenerOnce(p.getMarker(), 'mouseup', function(e) {
+            var end = e.latLng;
+            if (start != end) _this.trigger('connect', {start: start, end: end});
+          });
+        });
+
+        var domMouseupListener = event.addDomListenerOnce(document, 'mouseup', function(e) {
+          cleanUp();
+        });
+
+        function cleanUp() {
+          polyline.setMap(null);
+          map.setOptions({draggable: true});
+          event.removeListener(mapMousemoveListener);
+          for (var i = 0; i < markerMouseoverListeners.length; i++) {
+            event.removeListener(markerMouseoverListeners[i]);
+          }
+          for (var i = 0; i < markerMouseupListeners.length; i++) {
+            event.removeListener(markerMouseupListeners[i]);
+          }
+          event.removeListener(domMouseupListener);
+        }
+      });
     }
+
   });
 });
 
@@ -637,10 +702,14 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
 
     // Render Directions
     //
-    changeDirectionStrategy: function(mode) {
+    changeDirectionStrategy: function(mode, old) {
       this.clearDirectionStrategy();
       switch (mode) {
         case 'none':
+          if (old === 'customized') {
+            clearEditableRouteListener();
+            this.stopListenToPlaceConnection();
+          }
           clearRoutes();
           break;
         case 'linear':
@@ -655,167 +724,37 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
           sunburstReverseRouteUpdate();
           this.on('sort add remove', sunburstReverseRouteUpdate, dummyContext);
           break;
+        case 'customized':
+          clearRoutes();
+          enableRouteEditor();
+          this.listenToPlaceConnection();
+          this.on('add remove', enableRouteEditor, dummyContext);
+          break;
       }
     },
     clearDirectionStrategy: function() {
       this.off(null, null, dummyContext);
-      // TODO
     },
-
-    renderDirections: function() {
-      if (UI.directionMode != 'customized') {
-        this.leave('complexRoutes');
-        this.resetRoutes();
-      }
-      if (UI.directionMode != 'none') {
-        var places = this.select(function(p) { return !p._input; });
-      } else {
-        this.trigger('update');
-      }
-      if (typeof places === 'undefined' || places <= 1) return;
-      switch (UI.directionMode) {
-        case 'linear':
-          routes.push(new Route(places));
-          places[places.length - 1].getMarker().setIcon('/img/location-icon-dest.png');
-          places[0].getMarker().setIcon('/img/location-icon-start-point.png');
-          break;
-        case 'sunburst':
-          var first  = places[0];
-          var places = places.slice(1, places.length);
-          var pairs  = _.map(places, function(p) { return [first, p]; });
-          for (var i = 0; i < pairs.length; i++) {
-            routes.push(new Route(pairs[i]));
-          }
-          first.getMarker().setIcon('/img/location-icon-start-point.png');
-          break;
-        case 'sunburst-reverse':
-          var last   = places[places.length - 1];
-          var places = places.slice(0, places.length - 1);
-          var pairs  = _.map(places, function(p) { return [p, last]; });
-          for (var i = 0; i < pairs.length; i++) {
-            routes.push(new Route(pairs[i]));
-          }
-          last.getMarker().setIcon('/img/location-icon-dest.png');
-          break;
-        case 'customized':
-          this.enter('complexRoutes');
-          this.enableRoutesEditor(places);
-          break;
-      }
-
-      this.trigger('update');
-    },
-
-    resetRoutes: function() {
-      for (var i = 0; i < routes.length; i++) { routes[i].reset(); }
-      routes = [];
-      for (var i = 0; i < this.models.length; i++) {
-        var m = this.models[i];
-        if (!m._input) m.getMarker().setIcon('/img/location-icon-saved-place.png');
-      };
-      this.cleanUpRoutesEditor();
-    },
-
-    // Routes Editor
-    //
-    enableRoutesEditor: function(places) {
-      this.cleanUpRoutesEditor();
-      var event = google.maps.event;
+    listenToPlaceConnection: function() {
       var _this = this;
-      _.forEach(places, function(p) {
-        p._routeEditable = true;
-
-        // Mousedown
-        var markerListener = event.addListener(p.getMarker(), 'mousedown', function(e) {
-
-          var map   = Map.getMap();
-          var start = e.latLng;
-          var valid = false;
-
-          map.setOptions({draggable: false});
-
-          var polyline = new google.maps.Polyline({
-            clickable:     true,
-            strokeColor:  'red',
-            strokeOpacity: 1,
-            strokeWeight:  3,
-            map:           map
-          });
-
-          var mapMousemoveListener = event.addListener(map, 'mousemove', function(e) {
-            var end = e.latLng;
-            polyline.setPath([start, end]);
-          });
-
-          var markerMouseoverListeners = _.map(places, function(p) {
-            return event.addListener(p.getMarker(), 'mouseover', function(e) {
-              var end = e.latLng;
-              polyline.setPath([start, end]);
-            });
-          });
-
-          var markerMouseupListeners = _.map(places, function(p) {
-            return event.addListenerOnce(p.getMarker(), 'mouseup', function(e) {
-              var end = e.latLng;
-              if (start != end) {
-                valid = true;
-                _this.addComplexRoute(start, end);
-              }
-              cleanUp();
-            });
-          });
-
-          var domMouseupListener = event.addDomListenerOnce(document, 'mouseup', function(e) {
-            cleanUp();
-          });
-
-          function cleanUp() {
-            polyline.setMap(null);
-            map.setOptions({draggable: true});
-            event.removeListener(mapMousemoveListener);
-            for (var i = 0; i < markerMouseoverListeners.length; i++) {
-              event.removeListener(markerMouseoverListeners[i]);
-            }
-            for (var i = 0; i < markerMouseupListeners.length; i++) {
-              event.removeListener(markerMouseupListeners[i]);
-            }
-            event.removeListener(domMouseupListener);
-          }
-
-        }); // END of markerListener
-
-        routeEditableListeners.push(markerListener);
-      });
+      for (var i = 0; i < this.models.length; i++) {
+        this.listenTo(this.models[i], 'connect', function(connection) {
+          _this.connectPlaces(connection);
+        });
+      }
+      this.on('add', function(place) {
+        _this.listenTo(place, 'connect', function(connection) {
+          _this.connectPlaces(connection);
+        });
+      }, dummyContext);
     },
-
-    cleanUpRoutesEditor: function() {
-      for (var i = 0; i < routeEditableListeners.length; i++) {
-        google.maps.event.removeListener(routeEditableListeners[i]);
+    stopListenToPlaceConnection: function() {
+      for (var i = 0; i < this.models.length; i++) {
+        this.stopListening(this.models[i]);
       }
     },
-
-    // Complex Route Renderer
-    //
-    addComplexRoute: function(start, end) {
-      var start = this.find(function(p) { return (!p._input && p.get('geometry').location.equals(start)) });
-      var end   = this.find(function(p) { return (!p._input && p.get('geometry').location.equals(end)) });
-
-      var route = _.find(routes, function(r) {
-        return r.at(0) === end || r.at(r.length - 1) === start;
-      });
-
-      if (route) {
-        if (route.at(0) === end) {
-          route.unshift(start);
-        } else {
-          route.push(end);
-        }
-      } else {
-        var route = new Route([start, end], {cancelableRoute: true});
-        routes.push(route);
-      }
-
-      this.trigger('update');
+    connectPlaces: function(connection) {
+      console.log(connection);
     },
 
     // Server Communication
@@ -924,6 +863,24 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
         var route = new Route([places[i], last]);
         routes.push(route);
       }
+    }
+  }
+
+  function clearEditableRouteListener() {
+    for (var i = 0; i < service.models.length; i++) {
+      service.models[i].clearDrawer();
+    }
+  }
+
+  function enableRouteEditor() {
+    var places = service.getPlaces();
+    if (places.length > 1) {
+      for (var i = 0; i < places.length; i++) {
+        places[i].clearDrawer();
+        places[i].activeDrawer(places);
+      }
+    } else {
+      places[0].clearDrawer();
     }
   }
 
