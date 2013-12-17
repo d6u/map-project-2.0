@@ -124,28 +124,28 @@
           <div class="form-group">
             <label for="share-modal-email" class="col-sm-3 control-label">Your Email</label>
             <div class="col-sm-9">
-              <input type="email" class="form-control" id="share-modal-email" placeholder="your@email.com" required ng-model="MdShareModalCtrl.formData.sender">
-              <p class="help-block">We will send you a confirmation email first</p>
+              <input type="email" class="form-control" id="share-modal-email" placeholder="your@email.com" required ng-model="MdShareModalCtrl.list.sender">
+              <p class="help-block" ng-class="{error: MdShareModalCtrl.formHelp.senderHelpWarning}">{{ MdShareModalCtrl.formHelp.senderHelp }}</p>
             </div>
           </div>
           <div class="form-group">
             <label for="share-modal-title" class="col-sm-3 control-label">Title</label>
             <div class="col-sm-9">
-              <input type="text" class="form-control" id="share-modal-title" placeholder="" ng-model="MdShareModalCtrl.formData.title">
+              <input type="text" class="form-control" id="share-modal-title" placeholder="Untitled list†main" ng-model="MdShareModalCtrl.list.title">
             </div>
           </div>
           <div class="form-group">
             <label for="share-modal-receivers" class="col-sm-3 control-label">Friends' Email</label>
             <div class="col-sm-9">
-              <textarea class="form-control" id="share-modal-receivers" placeholder="example1@email.com, example2@email.com" required ng-model="MdShareModalCtrl.formData.receivers"></textarea>
-              <p class="help-block">Separate receiver's email addresses by comma.</p>
+              <textarea class="form-control" id="share-modal-receivers" placeholder="example1@email.com, example2@email.com" ng-model="MdShareModalCtrl.list.receivers"></textarea>
+              <p class="help-block" ng-class="{error: MdShareModalCtrl.formHelp.receiversHelpWarning}">{{ MdShareModalCtrl.formHelp.receiversHelp }}</p>
             </div>
           </div>
         </div>
         <footer class="cp-modal-footer">
           <div class="col-sm-offset-3 col-sm-9">
             <button type="button" class="btn btn-default" ng-click="UI.hideAllModal()">Cancel</button>
-            <button type="button" class="btn btn-success" ng-click="UI.hideAllModal()">Just Send to Myself</button>
+            <button type="button" class="btn btn-success" ng-click="MdShareModalCtrl.sendToSender()">Just Send to Myself</button>
             <button type="submit" class="btn btn-primary" ng-click="MdShareModalCtrl.send()">Send</button>
             <p class="help-block">By press "Send", you agree to our term and use. <a href="/terms.html" target="_blank">Read more</a>.</p>
           </div>

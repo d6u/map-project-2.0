@@ -83,6 +83,7 @@
   background-color: #FFF;
   overflow: hidden;
   width: 600px;
+  .help-block.error { color: $red; }
 }
 
 .cp-modal-header {

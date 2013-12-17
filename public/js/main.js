@@ -305,25 +305,103 @@ app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces, $rootSc
 });
 
 
-app.directive('mdShareModal', function($animate, UI) {
+app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $http, SavedPlaces) {
   return {
     controllerAs: 'MdShareModalCtrl',
-    controller: function($scope) {},
+    controller: function($scope) {
+
+      this.save = function(options) {
+        options = options || {};
+        if (!options.selfOnly) {
+          if (typeof this.list.receivers === 'undefined') {
+            this.formHelp.receiversHelpWarning = true;
+            this.formHelp.receiversHelp = "Receivers cannot be empty";
+            return false;
+          } else {
+            this.list.receivers = this.list.receivers.replace(/\s*$/, '');
+            if (this.list.receivers.length === 0) {
+              this.formHelp.receiversHelpWarning = true;
+              this.formHelp.receiversHelp = "Receivers cannot be empty";
+              return false;
+            }
+          }
+          var receivers = this.list.receivers.split(/,\s*/g);
+          for (var i = 0; i < receivers.length; i++) {
+            if (!validateEmail(receivers[i])) {
+              this.formHelp.receiversHelpWarning = true;
+              this.formHelp.receiversHelp = '"'+receivers[i]+'" is not a valid email.';
+              return false;
+            }
+          }
+        }
+
+        if (this.form.$valid) {
+          if ($location.path() === '/') {
+            SavedPlaces.save();
+          } else {
+            if (!this.list.title) $rootScope.list.name = this.list.title = 'Untitled list';
+            $http.post(
+              '/save_user',
+              {
+                sender: this.list.sender,
+                title:  this.list.title
+              }
+            ).success(function(user) {
+              SavedPlaces.save({user: user});
+            });
+          }
+          return true;
+        } else {
+          this.formHelp.senderHelpWarning = true;
+          this.formHelp.senderHelp = "You have to enter your email.";
+          return false;
+        }
+      }
+
+    },
     link: function(scope, element, attrs, Ctrl) {
+
+      Ctrl.list = {};
+
+      function restoreFormHelp() {
+        Ctrl.formHelp = {
+          senderHelp:       'We will send you a confirmation email first.',
+          senderHelpWarning: false,
+          receiversHelp:    "Separate receiver's email addresses by comma.",
+          receiversHelpWarning: false
+        }
+      }
+      restoreFormHelp();
+
+      scope.$watch('list.name', function(val) { Ctrl.list.title = val; });
 
       function bounceUpAnimation() {
         var child = element.children('.cp-modal-content');
         $animate.addClass(child, 'bounce-up-effect', function() {
           child.css('display', 'none');
           child.removeClass('bounce-up-effect');
-          scope.$apply(function() { UI.showShareModal = false; });
+          scope.$apply(function() { UI.hideAllModal(); });
           child.css('display', '');
         });
       }
 
-      Ctrl.send = function() {
-        bounceUpAnimation();
+      Ctrl.sendToSender = function() {
+        if (Ctrl.save({selfOnly: true})) {
+          bounceUpAnimation();
+          restoreFormHelp();
+        } else {
+          Ctrl.formHelp.senderHelpWarning = true;
+          Ctrl.formHelp.senderHelp = "You have to enter your email.";
+        }
       };
+
+      Ctrl.send = function() {
+        if (Ctrl.save()) {
+          bounceUpAnimation();
+          restoreFormHelp();
+        }
+      };
+
     }
   };
 });
