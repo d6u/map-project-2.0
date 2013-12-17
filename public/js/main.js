@@ -338,6 +338,8 @@ app.factory('Map', function(BackboneEvents) {
   };
 
   var Map = {
+    _mouseoverInfoWindowFlag: true,
+
     setCanvas: function(element) {
       this.setMap(new google.maps.Map(element, defaultMapOptions));
       this.enter('ready');
@@ -357,6 +359,7 @@ app.factory('Map', function(BackboneEvents) {
       map.setZoom(map.getZoom() - 1);
     },
     showMouseoverInfoWindow: function(marker, title) {
+      if (!this._mouseoverInfoWindowFlag) return;
       var content = document.createElement('div');
       content.innerHTML = title;
       content.style.lineHeight = '18px';
@@ -365,6 +368,12 @@ app.factory('Map', function(BackboneEvents) {
     },
     closeMouseoverInfoWindow: function() {
       mouseoverInfoWindow.close();
+    },
+    disableMouseoverInfoWindow: function() {
+      this._mouseoverInfoWindowFlag = false;
+    },
+    enableMouseoverInfoWindow: function() {
+      this._mouseoverInfoWindowFlag = true;
     }
   };
   _.extend(Map, BackboneEvents);
@@ -518,6 +527,7 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
       var event = google.maps.event;
       var _this = this;
       this._routeEditableListener = event.addListener(this.getMarker(), 'mousedown', function(e) {
+        Map.disableMouseoverInfoWindow();
         var map   = Map.getMap();
         var start = e.latLng;
         var valid = false;
@@ -566,6 +576,7 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
             event.removeListener(markerMouseupListeners[i]);
           }
           event.removeListener(domMouseupListener);
+          Map.enableMouseoverInfoWindow();
         }
       });
     }
