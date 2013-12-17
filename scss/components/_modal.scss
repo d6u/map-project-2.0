@@ -71,3 +71,25 @@
     @include transform-translate3d(0, -150%, 0);
   }
 }
+
+
+// Contents style
+//
+.cp-modal-inner {
+  background-color: #FFF;
+  overflow: hidden;
+  min-width: 600px;
+}
+
+.cp-modal-header {
+  height: 60px;
+  padding: (60px - 34px) / 2;
+  font-size: 20px;
+  line-height: 34px;
+}
+
+.cp-modal-body {
+  padding: (60px - 34px) / 2;
+}
+
+.cp-modal-footer {}

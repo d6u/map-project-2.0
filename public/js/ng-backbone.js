@@ -53,6 +53,10 @@ angular.module('ngBackbone', [])
     }
   };
 
+  // Re-assign Backbone.Event methods tp prototypes
+  _.extend(Backbone.Collection.prototype, Backbone.Events);
+  _.extend(Backbone.Model.prototype     , Backbone.Events);
+
   return Backbone.Events;
 })
 
