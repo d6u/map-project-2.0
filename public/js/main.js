@@ -178,6 +178,7 @@ app.directive('mdPlaceInput', function(SearchedPlaces, SavedPlaces) {
         SearchedPlaces.hint = [];
         $scope.place._cancelable = false;
         delete this.lastTerm;
+        textarea.trigger('keyup');
       };
     },
     link: function(scope, element, attrs, Ctrl) {
@@ -956,14 +957,17 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       $el.val(val);
 
       // move cursor to end
-      var el = $el[0];
-      if (typeof el.selectionStart == "number") {
-        el.selectionStart = el.selectionEnd = el.value.length;
-      } else if (typeof el.createTextRange != "undefined") {
-        el.focus();
-        var range = el.createTextRange();
-        range.collapse(false);
-        range.select();
+      if (val) {
+        var el = $el[0];
+        if (typeof el.selectionStart == "number") {
+          el.selectionStart = el.selectionEnd = el.value.length;
+        } else if (typeof el.createTextRange != "undefined") {
+          el.focus();
+          var range = el.createTextRange();
+          range.collapse(false);
+          range.select();
+        }
+        $el.trigger('keyup');
       }
     },
 
