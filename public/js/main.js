@@ -305,7 +305,7 @@ app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces, $rootSc
 });
 
 
-app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $http, SavedPlaces) {
+app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $http, SavedPlaces, $q) {
   return {
     controllerAs: 'MdShareModalCtrl',
     controller: function($scope) {
@@ -337,8 +337,9 @@ app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $
 
         if (this.form.$valid) {
           if ($location.path() === '/') {
-            SavedPlaces.save();
+            return SavedPlaces.save();
           } else {
+            var deferred = $q.defer();
             if (!this.list.title) $rootScope.list.name = this.list.title = 'Untitled list';
             $http.post(
               '/save_user',
@@ -347,10 +348,10 @@ app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $
                 title:  this.list.title
               }
             ).success(function(user) {
-              SavedPlaces.save({user: user});
+              deferred.resolve(SavedPlaces.save({user: user}));
             });
+            return deferred.promise;
           }
-          return true;
         } else {
           this.formHelp.senderHelpWarning = true;
           this.formHelp.senderHelp = "You have to enter your email.";
@@ -386,7 +387,17 @@ app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $
       }
 
       Ctrl.sendToSender = function() {
-        if (Ctrl.save({selfOnly: true})) {
+        var saved = Ctrl.save({selfOnly: true});
+        if (saved) {
+          saved.then(function() {
+            $http.post(
+              "/send_email?self_only=true",
+              {
+                sender:  Ctrl.list.sender,
+                list_id: scope.list._id
+              }
+            );
+          });
           bounceUpAnimation();
           restoreFormHelp();
         } else {
@@ -396,7 +407,18 @@ app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $
       };
 
       Ctrl.send = function() {
-        if (Ctrl.save()) {
+        var saved = Ctrl.save();
+        if (saved) {
+          saved.then(function() {
+            $http.post(
+              "/send_email",
+              {
+                sender:    Ctrl.list.sender,
+                list_id:   scope.list._id,
+                receivers: Ctrl.list.receivers.split(/,\s*/g)
+              }
+            );
+          });
           bounceUpAnimation();
           restoreFormHelp();
         }
@@ -1004,14 +1026,17 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       }
 
       if ($location.path() != '/') {
-        $http.post($location.path(), {data: data});
+        var promise = $http.post($location.path(), {data: data});
       } else {
         var _this = this;
-        $http.post('/save_list', {data: data}).success(function(data) {
+        var promise = $http.post('/save_list', {data: data})
+        .success(function(data) {
           $location.path(data._id);
           _this.enableAutoSave();
         });
       }
+
+      return promise;
     },
     enableAutoSave: function() {
       var _this = this;
