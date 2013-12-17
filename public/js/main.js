@@ -224,6 +224,7 @@ app.directive('mdSortablePlaces', function(SavedPlaces, UI, $rootScope) {
       cursor:      'move',
       helper:      'clone',
       placeholder: 'md-place-item md-place-item-sort-placeholder',
+      zIndex:       2100, // > .ly-drop-zone
       start: function(event, ui) {
         if (!ui.item.scope().place._input) {
           scope.$apply(function() { UI.showDropzone = true; });
