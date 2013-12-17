@@ -1,0 +1,39 @@
+.md-place-item {
+
+  &.ng-enter,
+  &.ng-leave {
+    @include transition(all, 400ms);
+    position:relative;
+    .md-place-inner {
+      @include transition(all, 400ms);
+      position: relative;
+    }
+  }
+
+  &.ng-enter {
+    opacity: 0;
+    .md-place-inner {
+      left: 350px;
+    }
+  }
+  &.ng-enter.ng-enter-active {
+    opacity: 1;
+    .md-place-inner {
+      left: 0;
+    }
+  }
+
+  &.ng-leave {
+    opacity: 1;
+    .md-place-inner {
+      left: 0;
+    }
+  }
+  &.ng-leave.ng-leave-active {
+    opacity: 0;
+    .md-place-inner {
+      left: -350px;
+    }
+  }
+
+}

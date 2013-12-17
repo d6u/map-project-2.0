@@ -76,5 +76,7 @@
 
 .ly-app > .md-place-item {
   border: 1px solid $blue;
-  background-color: rgba(#FFF, 0.7);
+  background-color: rgba(#FFF, 0.9);
+  // z-index is controlled in sortable options
+  // z-index: 2100; // > .ly-drop-zone
 }
