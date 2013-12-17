@@ -622,16 +622,7 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
       });
     },
     parseShortAddress: function() {
-      var short_addresses = [];
-      var acp = this.get('address_components');
-      for (var i = 0; i < acp.length; i++) {
-        if (acp[i].types[0] != 'locality') {
-          short_addresses.push(acp[i].short_name);
-        } else {
-          break;
-        }
-      };
-      this.set('short_address', short_addresses.join(', '));
+      this.set('short_address', this.get('formatted_address'));
     },
     getCoverPhoto: function() {
       if (this.has('photos')) {
@@ -867,6 +858,7 @@ app.factory('SearchedPlaces', function(Backbone, Place, Map, PlacesService, $q) 
           _this.set(result.splice(0, 5));
           deferred.resolve();
         } else {
+          _this.reset();
           deferred.reject();
         }
       });
