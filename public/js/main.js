@@ -38,7 +38,7 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $h
   } else {
     $http.get(path+'/data').success(function(data) {
 
-      $rootScope.list = {name: data.name};
+      $rootScope.list = {name: data.name, _id: data._id};
 
       // Load Data into SavedPlaces
       UI.directionMode = data.mode;
@@ -1123,11 +1123,11 @@ app.value('validateEmail', function(email) {
 
 
 app.value('UI', {
-  showDropzone:       false,
-  showShareModal:     false,
+  showDropzone:   false,
+  showShareModal: false,
+  showSaveModal:  false,
+  directionMode:  'none',
   showDirectionModal: false,
-  showSaveModal:      false,
-  directionMode:      'none',
 
   hideAllModal: function() {
     this.showDirectionModal = false;
