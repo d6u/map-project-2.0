@@ -27,7 +27,7 @@
     <div class="ly-panel-toolbar cp-toolbar">
       <a href class="cp-toolbar-button right" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Create a new list"><i class="fa fa-plus"></i></a>
       <a href class="cp-toolbar-button right" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Help"><i class="fa fa-question-circle"></i></a>
-      <h1 href class="cp-toolbar-title">Map Project Title</h1>
+      <h1 href class="cp-toolbar-title">{{list.name}}</h1>
     </div>
 
     <div class="ly-map-canvas" md-map-canvas></div>
@@ -44,7 +44,7 @@
       <a href class="cp-toolbar-button left" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Directions" ng-click="UI.showDirectionModal = true"><i class="fa fa-location-arrow"></i></a>
       <a href class="cp-toolbar-button left" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Zoom map to all markers" ng-click=""><i class="fa fa-arrows-alt"></i></a>
       <a href class="cp-toolbar-button right" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Save & Send to my email" ng-click="UI.showSaveModal = true"><i class="fa fa-floppy-o"></i></a>
-      <a href class="cp-toolbar-button right" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Share with friends" ng-click="UI.showShareModal = true"><i class="fa fa-share-square"></i></a>
+      <a href class="cp-toolbar-button right" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Send to me & Share with friends" ng-click="UI.showShareModal = true"><i class="fa fa-share-square"></i></a>
     </div>
 
     <div class="ly-side-panel-inner">
@@ -118,35 +118,36 @@
   <div class="cp-modal slide-up-effect" ng-class="{show: UI.showShareModal}" md-share-modal>
     <div class="cp-modal-content">
 
-      <form class="cp-modal-inner form-horizontal">
+      <form class="md-modal share-mode cp-modal-inner form-horizontal" name="MdShareModalCtrl.form">
         <header class="cp-modal-header">Send this list to your friends</header>
         <div class="cp-modal-body">
           <div class="form-group">
             <label for="share-modal-email" class="col-sm-3 control-label">Your Email</label>
             <div class="col-sm-9">
-              <input type="email" class="form-control" id="share-modal-email" placeholder="your@email.com" required ng-model="MdShareModalCtrl.form.sender">
-              <p class="help-block">We will send you a confirmation email first</p>
+              <input type="email" class="form-control" id="share-modal-email" placeholder="your@email.com" required ng-model="MdShareModalCtrl.list.sender">
+              <p class="help-block" ng-class="{error: MdShareModalCtrl.formHelp.senderHelpWarning}">{{ MdShareModalCtrl.formHelp.senderHelp }}</p>
             </div>
           </div>
           <div class="form-group">
             <label for="share-modal-title" class="col-sm-3 control-label">Title</label>
             <div class="col-sm-9">
-              <input type="text" class="form-control" id="share-modal-title" placeholder="" ng-model="MdShareModalCtrl.form.title">
+              <input type="text" class="form-control" id="share-modal-title" placeholder="Untitled list†main" ng-model="MdShareModalCtrl.list.title">
             </div>
           </div>
           <div class="form-group">
             <label for="share-modal-receivers" class="col-sm-3 control-label">Friends' Email</label>
             <div class="col-sm-9">
-              <textarea class="form-control" id="share-modal-receivers" placeholder="example1@email.com, example2@email.com" required ng-model="MdShareModalCtrl.form.receivers"></textarea>
-              <p class="help-block">Separate receiver's email addresses by comma.</p>
+              <textarea class="form-control" id="share-modal-receivers" placeholder="example1@email.com, example2@email.com" ng-model="MdShareModalCtrl.list.receivers"></textarea>
+              <p class="help-block" ng-class="{error: MdShareModalCtrl.formHelp.receiversHelpWarning}">{{ MdShareModalCtrl.formHelp.receiversHelp }}</p>
             </div>
           </div>
         </div>
         <footer class="cp-modal-footer">
           <div class="col-sm-offset-3 col-sm-9">
             <button type="button" class="btn btn-default" ng-click="UI.hideAllModal()">Cancel</button>
+            <button type="button" class="btn btn-success" ng-click="MdShareModalCtrl.sendToSender()">Just Send to Myself</button>
             <button type="submit" class="btn btn-primary" ng-click="MdShareModalCtrl.send()">Send</button>
-            <p class="help-block">By press "Send", you agree to our term and use. <a href="/terms.html">Read more</a>.</p>
+            <p class="help-block">By press "Send", you agree to our term and use. <a href="/terms.html" target="_blank">Read more</a>.</p>
           </div>
         </footer>
       </form>
@@ -157,7 +158,7 @@
   <div class="cp-modal slide-up-effect" ng-class="{show: UI.showSaveModal}" md-save-modal>
     <div class="cp-modal-content">
 
-      <form class="cp-modal-inner form-horizontal" name="MdSaveModalCtrl.form">
+      <form class="md-modal save-mode cp-modal-inner form-horizontal" name="MdSaveModalCtrl.form" ng-hide="list._id">
         <header class="cp-modal-header">Save your list of places</header>
         <div class="cp-modal-body">
           <div class="form-group">
@@ -174,7 +175,7 @@
             </div>
           </div>
         </div>
-        <footer class="cp-modal-footer">
+        <footer>
           <div class="col-sm-offset-3 col-sm-9">
             <button type="button" class="btn btn-default" ng-click="UI.hideAllModal()">Cancel</button>
             <button type="submit" class="btn btn-primary" ng-click="MdSaveModalCtrl.save()">Save</button>
@@ -183,6 +184,18 @@
           </div>
         </footer>
       </form>
+
+
+      <div class="md-modal save-mode-disabled cp-modal-inner" ng-show="list._id">
+        <header class="cp-modal-header">Why can't I save?</header>
+        <div class="cp-modal-body">
+          <p class="lead">You have already saved your list to the server, all future changes will be automatically saved.</p>
+          <p class="lead">If you want to send a copy to your email again, or sent this list to your friends, you can click "<a href ng-click="UI.hideAllModal(); UI.showShareModal = true"><i class="fa fa-share-square"></i></a>" on toolbar or <a href ng-click="UI.hideAllModal(); UI.showShareModal = true">here</a>.</p>
+        </div>
+        <footer class="cp-modal-footer">
+          <a href class="cp-modal-footer-button right btn btn-default" ng-click="UI.hideAllModal()">OK</a>
+        </footer>
+      </div>
 
     </div>
   </div>

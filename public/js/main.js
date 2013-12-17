@@ -9,7 +9,7 @@ app.config(function($locationProvider) {
   $locationProvider.html5Mode(true);
 });
 
-app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location) {
+app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $http, Place, Route, $q) {
   $rootScope.SavedPlaces    = SavedPlaces;
   $rootScope.SearchedPlaces = SearchedPlaces;
   $rootScope.Map = Map;
@@ -33,15 +33,67 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location) {
   var path = $location.path();
   if (path === '/') {
     SavedPlaces.addInputModel();
+    $rootScope.list = {name: 'iWantMap Project'};
+    watchDirectionModeChange();
   } else {
-    // this.fetch(path);
-    // this.addInputModel();
-    // this.turnOnAutoSave();
+    $http.get(path+'/data').success(function(data) {
+
+      $rootScope.list = {name: data.name, _id: data._id};
+
+      // Load Data into SavedPlaces
+      UI.directionMode = data.mode;
+
+      var places = [];
+      var placesReady = [];
+      _.forEach(data.places, function(p) {
+        var placeDefer = $q.defer();
+        placesReady.push(placeDefer.promise);
+        var place = new Place(p);
+        place.inState('attrsFetched', function() {
+          place.createMarker();
+          placeDefer.resolve();
+        });
+        places.push(place);
+      });
+
+      $q.all(placesReady).then(function() {
+        SavedPlaces.set(places);
+        if (data.mode === 'customized') {
+          var routes = [];
+          for (var i = 0; i < data.routes.length; i++) {
+            var routePlaces = [];
+            for (var j = 0; j < data.routes[i].length; j++) {
+              routePlaces.push( SavedPlaces.findWhere({id: data.routes[i][j]}) );
+            }
+            routes.push(new Route(routePlaces));
+          }
+        }
+
+        SavedPlaces.addInputModel({at: SavedPlaces.length});
+        watchDirectionModeChange();
+        setTimeout(function() {
+          if (data.mode === 'customized' && routes.length) {
+            SavedPlaces.addRoute(routes);
+          }
+          SavedPlaces.enableAutoSave();
+        });
+      });
+
+    })
+    .error(function() {
+      $location.path('');
+      SavedPlaces.addInputModel();
+      $rootScope.list = {name: 'iWantMap Project'};
+    });
   }
 
-  $rootScope.$watch('UI.directionMode', function(val, old) {
-    SavedPlaces.trigger('directionModeChanged', val, old);
-  });
+
+  function watchDirectionModeChange() {
+    $rootScope.$watch('UI.directionMode', function(val, old) {
+      SavedPlaces.trigger('directionModeChanged', val, old);
+    });
+  }
+
 });
 
 
@@ -226,7 +278,7 @@ app.directive('mdDropZone', function($timeout, $rootScope) {
 });
 
 
-app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces) {
+app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces, $rootScope) {
   return {
     controllerAs: 'MdSaveModalCtrl',
     controller: function($scope) {
@@ -234,10 +286,15 @@ app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces) {
       this.list = {};
 
       this.save = function() {
+        if (this.form.$valid && $location.path() != '/') {
+          SavedPlaces.save();
+          UI.hideAllModal();
+          return;
+        }
         if (this.form.$valid) {
-          if (!this.list.title) this.list.title = 'Untitled list';
+          if (!this.list.title) $rootScope.list.name = this.list.title = 'Untitled list';
           $http.post('/save_user', this.list).success(function(user) {
-            SavedPlaces.save(user);
+            SavedPlaces.save({user: user});
           });
           UI.hideAllModal();
         }
@@ -248,25 +305,126 @@ app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces) {
 });
 
 
-app.directive('mdShareModal', function($animate, UI) {
+app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $http, SavedPlaces, $q) {
   return {
     controllerAs: 'MdShareModalCtrl',
-    controller: function($scope) {},
+    controller: function($scope) {
+
+      this.save = function(options) {
+        options = options || {};
+        if (!options.selfOnly) {
+          if (typeof this.list.receivers === 'undefined') {
+            this.formHelp.receiversHelpWarning = true;
+            this.formHelp.receiversHelp = "Receivers cannot be empty";
+            return false;
+          } else {
+            this.list.receivers = this.list.receivers.replace(/\s*$/, '');
+            if (this.list.receivers.length === 0) {
+              this.formHelp.receiversHelpWarning = true;
+              this.formHelp.receiversHelp = "Receivers cannot be empty";
+              return false;
+            }
+          }
+          var receivers = this.list.receivers.split(/,\s*/g);
+          for (var i = 0; i < receivers.length; i++) {
+            if (!validateEmail(receivers[i])) {
+              this.formHelp.receiversHelpWarning = true;
+              this.formHelp.receiversHelp = '"'+receivers[i]+'" is not a valid email.';
+              return false;
+            }
+          }
+        }
+
+        if (this.form.$valid) {
+          if ($location.path() === '/') {
+            var deferred = $q.defer();
+            if (!this.list.title) $rootScope.list.name = this.list.title = 'Untitled list';
+            $http.post(
+              '/save_user',
+              {
+                sender: this.list.sender,
+                title:  this.list.title
+              }
+            ).success(function(user) {
+              deferred.resolve(SavedPlaces.save({user: user}));
+            });
+            return deferred.promise;
+          } else {
+            return SavedPlaces.save();
+          }
+        } else {
+          this.formHelp.senderHelpWarning = true;
+          this.formHelp.senderHelp = "You have to enter your email.";
+          return false;
+        }
+      }
+
+    },
     link: function(scope, element, attrs, Ctrl) {
+
+      Ctrl.list = {};
+
+      function restoreFormHelp() {
+        Ctrl.formHelp = {
+          senderHelp:       'We will send you a confirmation email first.',
+          senderHelpWarning: false,
+          receiversHelp:    "Separate receiver's email addresses by comma.",
+          receiversHelpWarning: false
+        }
+      }
+      restoreFormHelp();
+
+      scope.$watch('list.name', function(val) { Ctrl.list.title = val; });
 
       function bounceUpAnimation() {
         var child = element.children('.cp-modal-content');
         $animate.addClass(child, 'bounce-up-effect', function() {
           child.css('display', 'none');
           child.removeClass('bounce-up-effect');
-          scope.$apply(function() { UI.showShareModal = false; });
+          scope.$apply(function() { UI.hideAllModal(); });
           child.css('display', '');
         });
       }
 
-      Ctrl.send = function() {
-        bounceUpAnimation();
+      Ctrl.sendToSender = function() {
+        var saved = Ctrl.save({selfOnly: true});
+        if (saved) {
+          saved.then(function() {
+            $http.post(
+              "/send_email",
+              {
+                self_only: true,
+                sender:    Ctrl.list.sender,
+                list_id:   scope.list._id
+              }
+            );
+          });
+          bounceUpAnimation();
+          restoreFormHelp();
+        } else {
+          Ctrl.formHelp.senderHelpWarning = true;
+          Ctrl.formHelp.senderHelp = "You have to enter your email.";
+        }
       };
+
+      Ctrl.send = function() {
+        var saved = Ctrl.save();
+        if (saved) {
+          saved.then(function() {
+            $http.post(
+              "/send_email",
+              {
+                sender:    Ctrl.list.sender,
+                list_id:   scope.list._id,
+                receivers: Ctrl.list.receivers.split(/,\s*/g)
+              }
+            );
+          });
+          bounceUpAnimation();
+          restoreFormHelp();
+        }
+      };
+
     }
   };
 });
@@ -725,6 +883,7 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
         old.destroy();
         routes = _.without(routes, old);
         routes = routes.concat(news);
+        this.trigger('routeUpdated');
       });
     },
 
@@ -747,6 +906,12 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
     },
     getPlaces: function() {
       return this.select(function(p) { return !p._input; });
+    },
+
+    // Route Management
+    //
+    addRoute: function(newRoute) {
+      routes = newRoute;
     },
 
     // Render Directions
@@ -817,12 +982,14 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
             var place = this.getPlaceWithLatlng(connection.start);
             route.unshift(place);
           }
+          this.trigger('routeUpdated');
           return;
         }
       }
       var startPlace = this.getPlaceWithLatlng(connection.start);
       var endPlace   = this.getPlaceWithLatlng(connection.end);
       routes.push(new Route([startPlace, endPlace]));
+      this.trigger('routeUpdated');
     },
     getPlaceWithLatlng: function(latLng) {
       return this.find(function(p) { return p.getPosition().equals(latLng); });
@@ -830,9 +997,9 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
 
     // Server Communication
     //
-    save: function(user) {
-      var places = this.select(function(p) { return !p._input });
-      var places = _.map(places, function(p, i) {
+    save: function(options) {
+      options = options || {};
+      var places = _.map(this.getPlaces(), function(p, i) {
         return {
           order:         i,
           name:          p.get('name'),
@@ -844,52 +1011,38 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       });
 
       var data = {
+        name:     $rootScope.list.name,
         mode:     UI.directionMode,
-        owner_id: user._id,
-        shared:   [],
+        owner_id: options.user && $location.path() != '/' ? options.user._id : null,
+        // shared:   [],
         places:   places
       };
 
       if (UI.directionMode === 'customized') {
         data.routes = _.map(routes, function(r) {
           return r.map(function(p) {
-            return p.get('geometry').location.toUrlValue();
+            return p.get('id');
           });
         });
       }
 
-      if (this._autoSave) {
-        $http.post($location.path(), {data: data});
+      if ($location.path() != '/') {
+        var promise = $http.post($location.path(), {data: data});
       } else {
         var _this = this;
-        $http.post('/save_list', {data: data}).success(function(data) {
+        var promise = $http.post('/save_list', {data: data})
+        .success(function(data) {
           $location.path(data._id);
-          _this.turnOnAutoSave();
+          _this.enableAutoSave();
         });
       }
-    },
 
-    fetch: function(path) {
-      var _this = this;
-      $http.get(path + '/data').success(function(data) {
-        UI.directionMode = data.mode;
-        for (var i = data.places.length - 1; i >= 0; i--) {
-          var attrs = data.places[i];
-          var coord = /(.+),(.+)/.exec(attrs.location);
-          attrs.geometry = {location: new google.maps.LatLng(coord[1], coord[2])};
-          var place = new Place(attrs);
-          place.getMarker().setIcon('/img/location-icon-saved-place.png');
-          _this.unshift(place, {silent: true});
-        }
-        _this.save({});
-      });
+      return promise;
     },
-
-    turnOnAutoSave: function() {
-      this._autoSave = true;
+    enableAutoSave: function() {
       var _this = this;
-      this.on('update', function() {
-        _this.save({});
+      this.on('add remove sort routeUpdated directionModeChanged', function() {
+        this.save();
       });
     }
 
@@ -1074,11 +1227,11 @@ app.value('validateEmail', function(email) {
 
 
 app.value('UI', {
-  showDropzone:       false,
-  showShareModal:     false,
+  showDropzone:   false,
+  showShareModal: false,
+  showSaveModal:  false,
+  directionMode:  'none',
   showDirectionModal: false,
-  showSaveModal:      false,
-  directionMode:      'none',
 
   hideAllModal: function() {
     this.showDirectionModal = false;

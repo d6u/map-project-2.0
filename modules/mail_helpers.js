@@ -49,27 +49,30 @@ module.exports = {
     return deferred.promise;
   },
 
-  // sender is a user db object
-  // list is a db object
-  sendListEmails: function(sender, list, resend) {
+
+  //
+  //  sender is a email address
+  //  list is a db object
+  sendListEmails: function(senderEmail, list, receivers, resendFlag) {
+
     var listUrl = hostname + list._id;
     var options = {
-      from:    sender.e,
-      // 'to' field is defined later
-      subject: list.t,
-      text:    sender.e + " just shared a places list with you, check it out: " + listUrl
+      from:    "iwantmap.com <no-reply@iwantmap.com>",
+      subject: list.name,
+      text:    senderEmail + " just shared a places list with you, check it out: " + listUrl
     };
-    for (var i = list.rs.length - 1; i >= 0; i--) {
-      if (!list.rs[i].s || resend) {
-        options.to = list.rs[i].e;
-        (function(receiver) {
-          smtp.sendMail(options, function(err, res) {
-            if (err) console.warn(err);
-            else console.log("Message sent to " + receiver + ": " + res.message);
-          });
-        })(options.to);
-      }
+    // 'to' field is defined later
+
+    for (var i = receivers.length - 1; i >= 0; i--) {
+      (function(receiver) {
+        options.to = receiver;
+        smtp.sendMail(options, function(err, res) {
+          if (err) console.warn(err);
+          else console.log("Message sent to " + receiver + ": " + res.message);
+        });
+      })(receivers[i]);
     }
+
   }
 
 };
