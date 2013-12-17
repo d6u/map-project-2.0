@@ -43,10 +43,6 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $h
       // Load Data into SavedPlaces
       UI.directionMode = data.mode;
 
-      if (data.mode === 'customized') {
-        SavedPlaces.trigger('directionModeChanged', 'customized');
-      }
-
       var places = [];
       var placesReady = [];
       _.forEach(data.places, function(p) {
@@ -71,12 +67,16 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $h
             }
             routes.push(new Route(routePlaces));
           }
-          SavedPlaces.addRoute(routes);
         }
 
         SavedPlaces.addInputModel({at: SavedPlaces.length});
         watchDirectionModeChange();
-        setTimeout(function() { SavedPlaces.enableAutoSave(); });
+        setTimeout(function() {
+          if (data.mode === 'customized' && routes.length) {
+            SavedPlaces.addRoute(routes);
+          }
+          SavedPlaces.enableAutoSave();
+        });
       });
 
     })
