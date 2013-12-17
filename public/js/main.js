@@ -119,6 +119,17 @@ app.directive('mdMapCanvas', function(Map) {
 });
 
 
+app.directive('mdInfoPanel', function(SearchedPlaces, SavedPlaces) {
+  return function(scope, element, attrs) {
+    element.on('click', '#search-term-prediction', function() {
+      var term = $(this).html();
+      SearchedPlaces.searchWith(term, {noPrediction: true});
+      SavedPlaces.resetInput(term);
+    });
+  };
+});
+
+
 app.directive('mdSearchResult', function(Map, SearchedPlaces, SavedPlaces) {
   return {
     templateUrl: 'place-template',
@@ -164,6 +175,7 @@ app.directive('mdPlaceInput', function(SearchedPlaces) {
       this.clearInput = function() {
         textarea.val('');
         SearchedPlaces.reset();
+        SearchedPlaces.hint = [];
         $scope.place._cancelable = false;
         delete this.lastTerm;
       };
@@ -836,12 +848,13 @@ app.factory('Route', function(Place, DirectionsRenderer) {
 });
 
 
-app.factory('SearchedPlaces', function($rootScope, Backbone, Place, Map, PlacesService, $q) {
+app.factory('SearchedPlaces', function($rootScope, Backbone, Place, Map, PlacesService, $q, PlacesAutocompleteService) {
 
   var SearchedPlaces = Backbone.Collection.extend({
 
     name: 'SearchedPlaces',
     model: Place,
+    hint: [],
 
     initialize: function() {
       this.on('reset', function(c, options) {
@@ -851,20 +864,40 @@ app.factory('SearchedPlaces', function($rootScope, Backbone, Place, Map, PlacesS
       });
     },
 
-    searchWith: function(term) {
+    searchWith: function(term, options) {
+      options = options || {};
       var deferred = $q.defer();
       var _this = this;
+
+      if (!options.noPrediction) {
+        PlacesAutocompleteService.getQueryPredictions({
+          bounds: Map.getBounds(),
+          input: term,
+        }, function(result, status) {
+          if (status === google.maps.places.PlacesServiceStatus.OK) {
+            _this.hint[1] = result[0].description;
+          } else {
+            _this.hint[1] = '';
+          }
+        });
+      } else {
+        this.hint[1] = '';
+      }
+
       PlacesService.textSearch(term, function(result, status) {
         $rootScope.$apply(function() {
           if (status === google.maps.places.PlacesServiceStatus.OK) {
+            _this.hint[0] = '';
             _this.set(result.splice(0, 5));
             deferred.resolve();
           } else {
+            _this.hint[0] = "Sorry no result found.";
             _this.reset();
             deferred.reject();
           }
         });
       });
+
       return deferred.promise;
     }
 
@@ -902,8 +935,21 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       var place = new Place(null, {input: true});
       this.add(place, {at: options.at != null ? options.at : this.length - 1});
     },
-    resetInput: function() {
-      this.find('_input')._element.find('textarea').val('').focus();
+    resetInput: function(val) {
+      val = val || '';
+      var $el = this.find('_input')._element.find('textarea');
+      $el.val(val);
+
+      // move cursor to end
+      var el = $el[0];
+      if (typeof el.selectionStart == "number") {
+        el.selectionStart = el.selectionEnd = el.value.length;
+      } else if (typeof el.createTextRange != "undefined") {
+        el.focus();
+        var range = el.createTextRange();
+        range.collapse(false);
+        range.select();
+      }
     },
 
     // Place Management
@@ -1246,4 +1292,28 @@ app.value('UI', {
     this.showShareModal     = false;
     this.showSaveModal      = false
   }
+});
+
+
+app.filter('SearchedPlacesHintFilter', function($sce) {
+
+  function getHintText(text) {
+    return 'Did you mean "<a href id="search-term-prediction">'+ text +'</a>"?';
+  }
+
+  return function(input) {
+    if (input[0] || input[1]) {
+      input.show = true;
+      if (input[0] && input[1]) {
+        return $sce.trustAsHtml(input[0] + getHintText(input[1]));
+      } else if (input[0]) {
+        return $sce.trustAsHtml(input[0]);
+      } else {
+        return $sce.trustAsHtml(getHintText(input[1]));
+      }
+    } else {
+      input.show = false;
+      return $sce.trustAsHtml('');
+    }
+  };
 });
