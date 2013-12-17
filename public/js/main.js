@@ -249,7 +249,7 @@ app.directive('mdSortablePlaces', function(SavedPlaces, UI, $rootScope) {
           ));
         }
         ui.item._sortable = {initIndex: ui.item.index()};
-        ui.placeholder.css('height', ui.item.height());
+        ui.placeholder.css('height', ui.item.outerHeight());
       },
       update: function(event, ui) {
         if (typeof $rootScope.droppedItemIndex === 'undefined') {
@@ -855,14 +855,14 @@ app.factory('SearchedPlaces', function($rootScope, Backbone, Place, Map, PlacesS
       var _this = this;
       PlacesService.textSearch(term, function(result, status) {
         $rootScope.$apply(function() {
-        if (status === google.maps.places.PlacesServiceStatus.OK) {
-          _this.set(result.splice(0, 5));
-          deferred.resolve();
-        } else {
-          _this.reset();
-          deferred.reject();
-        }
-      });
+          if (status === google.maps.places.PlacesServiceStatus.OK) {
+            _this.set(result.splice(0, 5));
+            deferred.resolve();
+          } else {
+            _this.reset();
+            deferred.reject();
+          }
+        });
       });
       return deferred.promise;
     }
