@@ -338,6 +338,8 @@ app.factory('Map', function(BackboneEvents) {
   };
 
   var Map = {
+    _mouseoverInfoWindowFlag: true,
+
     setCanvas: function(element) {
       this.setMap(new google.maps.Map(element, defaultMapOptions));
       this.enter('ready');
@@ -357,6 +359,7 @@ app.factory('Map', function(BackboneEvents) {
       map.setZoom(map.getZoom() - 1);
     },
     showMouseoverInfoWindow: function(marker, title) {
+      if (!this._mouseoverInfoWindowFlag) return;
       var content = document.createElement('div');
       content.innerHTML = title;
       content.style.lineHeight = '18px';
@@ -365,6 +368,12 @@ app.factory('Map', function(BackboneEvents) {
     },
     closeMouseoverInfoWindow: function() {
       mouseoverInfoWindow.close();
+    },
+    disableMouseoverInfoWindow: function() {
+      this._mouseoverInfoWindowFlag = false;
+    },
+    enableMouseoverInfoWindow: function() {
+      this._mouseoverInfoWindowFlag = true;
     }
   };
   _.extend(Map, BackboneEvents);
@@ -518,6 +527,7 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
       var event = google.maps.event;
       var _this = this;
       this._routeEditableListener = event.addListener(this.getMarker(), 'mousedown', function(e) {
+        Map.disableMouseoverInfoWindow();
         var map   = Map.getMap();
         var start = e.latLng;
         var valid = false;
@@ -566,6 +576,7 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
             event.removeListener(markerMouseupListeners[i]);
           }
           event.removeListener(domMouseupListener);
+          Map.enableMouseoverInfoWindow();
         }
       });
     }
@@ -583,9 +594,14 @@ app.factory('Route', function(Place, DirectionsRenderer) {
 
     initialize: function(places, options) {
       this._renderer = DirectionsRenderer.renderDirectionsWith(places);
+      this._renderer.once('stabilized', this.addCancelableListener, this);
       this.on('add', function() {
         this._renderer.removeDirections();
         this._renderer = DirectionsRenderer.renderDirectionsWith(this.models);
+        this._renderer.once('stabilized', this.addCancelableListener, this);
+      });
+      this.on('split', function(old, news) {
+        Backbone.trigger('splitRoutes', old, news);
       });
     },
 
@@ -604,7 +620,53 @@ app.factory('Route', function(Place, DirectionsRenderer) {
       } else {
         return false;
       }
+    },
+    isDuplicated: function(connection) {
+      var i = this.getPlaceIndexWithLatlng(connection.start);
+      if (i >= 0) {
+        var p = this.at(i + 1);
+        if (p && p.getPosition().equals(connection.end)) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+    },
+    getPlaceIndexWithLatlng: function(latLng) {
+      var p = this.find(function(p) { return p.getPosition().equals(latLng); });
+      return p ? this.indexOf(p) : -1;
+    },
+
+    addCancelableListener: function() {
+      var polylines = this._renderer.getPolylines();
+      var _this = this;
+      _.forEach(polylines, function(pl) {
+        google.maps.event.addListener(pl, 'rightclick', function() {
+          if (_this.length === 2) {
+            _this.trigger('split', _this, []);
+            return;
+          }
+          var begin = this._start;
+          var beginIndex = _this.indexOf(begin);
+          if (beginIndex === 0) {
+            var newRoute = new Route(_this.slice(1, _this.length));
+            _this.trigger('split', _this, [newRoute]);
+          } else {
+            var end = this._end;
+            var endIndex = _this.indexOf(end);
+            if (endIndex === _this.length - 1) {
+              var newRoute = new Route(_this.slice(0, _this.length - 1));
+              _this.trigger('split', _this, [newRoute]);
+            } else {
+              var newRoute1 = new Route(_this.slice(0, beginIndex + 1));
+              var newRoute2 = new Route(_this.slice(endIndex, _this.length));
+              _this.trigger('split', _this, [newRoute1, newRoute2]);
+            }
+          }
+        });
+      });
     }
+
   });
 
   return Route;
@@ -659,6 +721,11 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
 
     initialize: function() {
       this.on('directionModeChanged', this.changeDirectionStrategy);
+      this.listenTo(Backbone, 'splitRoutes', function(old, news) {
+        old.destroy();
+        routes = _.without(routes, old);
+        routes = routes.concat(news);
+      });
     },
 
     // Input Model related
@@ -737,6 +804,9 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
     },
     connectPlaces: function(connection) { // start, end
       var route, position;
+      for (var i = 0; i < routes.length; i++) {
+        if (routes[i].isDuplicated(connection)) return;
+      }
       for (var i = 0; i < routes.length; i++) {
         if (position = routes[i].connectableWith(connection)) {
           route = routes[i];
@@ -932,7 +1002,7 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService, BackboneEvent
 
     this._polylines = [];
 
-    this.renderWithResult = function(result) {
+    this.renderWithResult = function(result, places) {
       for (var j = 0; j < result.routes[0].legs.length; j++) {
         var leg = result.routes[0].legs[j];
         var path = [];
@@ -945,7 +1015,10 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService, BackboneEvent
             generateDirectionLink(leg.start_location, leg.end_location)+
             '" target="_blank">Get step by step directions from Google</a>';
 
-        this._polylines.push(createPolyline(path, options, content));
+        var polyline = createPolyline(path, options, content);
+        polyline._start = places[j];
+        polyline._end   = places[j + 1];
+        this._polylines.push(polyline);
       }
       this.trigger('stabilized');
     };
@@ -981,7 +1054,7 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService, BackboneEvent
         },
         function(result, status) {
           if (status === google.maps.DirectionsStatus.OK) {
-            renderer.renderWithResult(result);
+            renderer.renderWithResult(result, places);
           }
         }
       );
