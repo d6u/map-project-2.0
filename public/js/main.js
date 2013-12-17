@@ -604,7 +604,23 @@ app.factory('Route', function(Place, DirectionsRenderer) {
       } else {
         return false;
       }
+    },
+    isDuplicated: function(connection) {
+      var i = this.getPlaceIndexWithLatlng(connection.start);
+      if (i >= 0) {
+        var p = this.at(i + 1);
+        if (p && p.getPosition().equals(connection.end)) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+    },
+    getPlaceIndexWithLatlng: function(latLng) {
+      var p = this.find(function(p) { return p.getPosition().equals(latLng); });
+      return p ? this.indexOf(p) : -1;
     }
+
   });
 
   return Route;
@@ -737,6 +753,9 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
     },
     connectPlaces: function(connection) { // start, end
       var route, position;
+      for (var i = 0; i < routes.length; i++) {
+        if (routes[i].isDuplicated(connection)) return;
+      }
       for (var i = 0; i < routes.length; i++) {
         if (position = routes[i].connectableWith(connection)) {
           route = routes[i];
