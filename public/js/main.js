@@ -583,9 +583,14 @@ app.factory('Route', function(Place, DirectionsRenderer) {
 
     initialize: function(places, options) {
       this._renderer = DirectionsRenderer.renderDirectionsWith(places);
+      this._renderer.once('stabilized', this.addCancelableListener, this);
       this.on('add', function() {
         this._renderer.removeDirections();
         this._renderer = DirectionsRenderer.renderDirectionsWith(this.models);
+        this._renderer.once('stabilized', this.addCancelableListener, this);
+      });
+      this.on('split', function(old, news) {
+        Backbone.trigger('splitRoutes', old, news);
       });
     },
 
@@ -619,6 +624,36 @@ app.factory('Route', function(Place, DirectionsRenderer) {
     getPlaceIndexWithLatlng: function(latLng) {
       var p = this.find(function(p) { return p.getPosition().equals(latLng); });
       return p ? this.indexOf(p) : -1;
+    },
+
+    addCancelableListener: function() {
+      var polylines = this._renderer.getPolylines();
+      var _this = this;
+      _.forEach(polylines, function(pl) {
+        google.maps.event.addListener(pl, 'rightclick', function() {
+          if (_this.length === 2) {
+            _this.trigger('split', _this, []);
+            return;
+          }
+          var begin = this._start;
+          var beginIndex = _this.indexOf(begin);
+          if (beginIndex === 0) {
+            var newRoute = new Route(_this.slice(1, _this.length));
+            _this.trigger('split', _this, [newRoute]);
+          } else {
+            var end = this._end;
+            var endIndex = _this.indexOf(end);
+            if (endIndex === _this.length - 1) {
+              var newRoute = new Route(_this.slice(0, _this.length - 1));
+              _this.trigger('split', _this, [newRoute]);
+            } else {
+              var newRoute1 = new Route(_this.slice(0, beginIndex + 1));
+              var newRoute2 = new Route(_this.slice(endIndex, _this.length));
+              _this.trigger('split', _this, [newRoute1, newRoute2]);
+            }
+          }
+        });
+      });
     }
 
   });
@@ -675,6 +710,11 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
 
     initialize: function() {
       this.on('directionModeChanged', this.changeDirectionStrategy);
+      this.listenTo(Backbone, 'splitRoutes', function(old, news) {
+        old.destroy();
+        routes = _.without(routes, old);
+        routes = routes.concat(news);
+      });
     },
 
     // Input Model related
@@ -951,7 +991,7 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService, BackboneEvent
 
     this._polylines = [];
 
-    this.renderWithResult = function(result) {
+    this.renderWithResult = function(result, places) {
       for (var j = 0; j < result.routes[0].legs.length; j++) {
         var leg = result.routes[0].legs[j];
         var path = [];
@@ -964,7 +1004,10 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService, BackboneEvent
             generateDirectionLink(leg.start_location, leg.end_location)+
             '" target="_blank">Get step by step directions from Google</a>';
 
-        this._polylines.push(createPolyline(path, options, content));
+        var polyline = createPolyline(path, options, content);
+        polyline._start = places[j];
+        polyline._end   = places[j + 1];
+        this._polylines.push(polyline);
       }
       this.trigger('stabilized');
     };
@@ -1000,7 +1043,7 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService, BackboneEvent
         },
         function(result, status) {
           if (status === google.maps.DirectionsStatus.OK) {
-            renderer.renderWithResult(result);
+            renderer.renderWithResult(result, places);
           }
         }
       );
