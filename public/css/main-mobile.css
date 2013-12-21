@@ -38,6 +38,42 @@ h1, h2, h3, h4, h5, h6,
   margin: 0;
   padding: 0; }
 
+.md-place-container {
+  padding: 10px 10px 0; }
+
+.md-place-container-header {
+  margin: 0;
+  font-size: 16px;
+  margin-bottom: 10px;
+  font-style: italic; }
+
+.md-place-list {
+  list-style: none;
+  padding: 0;
+  margin: 0; }
+
+.md-place-item {
+  background-color: #5d9cec;
+  padding: 10px;
+  color: #FFF;
+  margin-bottom: 10px; }
+
+.md-place-name {
+  font-size: 18px;
+  line-height: 20px;
+  margin: 0 0 5px 0; }
+
+.md-place-address {
+  font-size: 14px;
+  margin: 0;
+  font-style: italic; }
+
+.md-place-container-empty-header {
+  font-style: 18px;
+  line-height: 1.3;
+  text-align: center;
+  font-weight: bold; }
+
 .md-route {
   position: relative;
   border-bottom: 1px solid #ccd1d9; }
@@ -51,26 +87,10 @@ h1, h2, h3, h4, h5, h6,
 
 .md-route-content {
   list-style: none;
-  padding: 10px 10px 10px 0;
+  padding: 10px 10px 0 0;
   margin: 0 0 0 40px; }
 
-.md-route-place {
-  background-color: #5d9cec;
-  padding: 10px;
-  color: #FFF; }
-
-.md-route-place-name {
-  font-size: 18px;
-  line-height: 20px;
-  margin: 0 0 5px 0; }
-
-.md-route-place-address {
-  font-size: 14px;
-  margin: 0;
-  font-style: italic; }
-
 .md-route-directions {
-  margin-top: 10px;
   margin-bottom: 10px; }
 
 .md-route-directions-link {

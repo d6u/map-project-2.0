@@ -39,7 +39,7 @@ $(window).on('load', function() {
       var heights = [];
       var svg = Snap('#js-route-connection-line-'+i);
 
-      $(route).find('.md-route-place').each(function(i, place) {
+      $(route).find('.js-place-item').each(function(i, place) {
         var position = $(place).position()
           , counter  = 1;
         heights.push(position.top + 10 + 20 / 2);
@@ -81,7 +81,7 @@ $(window).on('load', function() {
       var heights = [];
       var svg = Snap('#js-route-connection-line-'+i);
 
-      $(route).find('.md-route-place').each(function(i, place) {
+      $(route).find('.js-place-item').each(function(i, place) {
         var position = $(place).position();
         heights.push(position.top + 10 + 20 / 2);
       });

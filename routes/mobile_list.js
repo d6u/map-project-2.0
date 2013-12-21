@@ -19,7 +19,6 @@ module.exports = function(req, res) {
     lists.findOne({_id: new ObjectID(_id)}, function(err, list) {
       if (list) {
 
-        console.log(convertListToLocals(list));
         res.render('mobile', convertListToLocals(list), function(err, html) {
           if (err)
             console.log(err);
@@ -41,22 +40,24 @@ module.exports = function(req, res) {
 //
 function convertListToLocals(list) {
   var locals = {title: list.name};
-  switch (list.mode) {
-    case 'none':
-      locals.noRoutesPlaces = list.places;
-      break;
-    case 'linear':
-      convertListToLinearRoutes(locals, list);
-      break;
-    case 'sunburst':
-      convertListToSunburstRoutes(locals, list);
-      break;
-    case 'sunburst-reverse':
-      convertListToSunburstRoutes(locals, list, true);
-      break;
-    case 'customized':
-      convertListToCustomRoutes(locals, list);
-      break;
+  if (list.places.length > 1) {
+    switch (list.mode) {
+      case 'none':
+        locals.noRoutesPlaces = list.places;
+        break;
+      case 'linear':
+        convertListToLinearRoutes(locals, list);
+        break;
+      case 'sunburst':
+        convertListToSunburstRoutes(locals, list);
+        break;
+      case 'sunburst-reverse':
+        convertListToSunburstRoutes(locals, list, true);
+        break;
+      case 'customized':
+        convertListToCustomRoutes(locals, list);
+        break;
+    }
   }
   return locals;
 }
@@ -73,7 +74,7 @@ function convertListToLinearRoutes(locals, list) {
     });
   }
   routes[0].push(places[i]);
-  locals.routes = [routes[0], routes[0]];
+  locals.routes = routes;
   return locals;
 }
 
