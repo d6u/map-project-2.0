@@ -1,78 +1,89 @@
-
-var mailer = require('nodemailer');
-var Q      = require('q');
-var smtp   = mailer.createTransport('SMTP', {
-  host: 'smtp.mandrillapp.com',
-  port: 587,
-  auth: {user: 'daiweilu123@gmail.com', pass: 'OagEkr3y1Kj6sakFKLRL-Q'}
-});
+"use strict";
 
 
-var hostname;
-if (process.env.NODE_ENV == 'production') {
+var path           = require('path')
+  , templatesDir   = path.resolve(__dirname, '..', 'email_templates')
+  , emailTemplates = require('email-templates')
+  , nodemailer     = require('nodemailer')
+  , EE             = new (require('events').EventEmitter);
+
+
+var hostname
+  , transport
+  , template
+  , EMAIL_REGEX = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
+
+if (process.env.NODE_ENV === 'production') {
   hostname = "http://iwantmap.com/";
 } else {
   hostname = "http://localhost:3000/";
 }
 
 
+emailTemplates(templatesDir, function(err, _template) {
+  if (err) {
+    console.log(err);
+  } else {
+    template  = _template;
+    transport = nodemailer.createTransport('SMTP', {
+      host: 'smtp.mandrillapp.com',
+      port: 587,
+      auth: {user: 'daiweilu123@gmail.com', pass: 'OagEkr3y1Kj6sakFKLRL-Q'}
+    });
+    EE.emit('transportReady');
+  }
+});
+
+
+function getTransport(callback) {
+  if (typeof transport === 'undefined') {
+    EE.on('transportReady', function() {
+      callback(transport);
+    });
+  } else {
+    callback(transport);
+  }
+}
+
+
+// Module
+//
 module.exports = {
-  getMailer: function() { return mailer; },
+
+  // user: (user Object)
+  //
+  sendConfirmationEmail: function(user) {
+    getTransport(function(transport) {
+      var email  = user.e
+        , locals = {confirm_link: hostname + "confirm/" + user._id};
+
+      template('confirmation', locals, function(err, html, text) {
+        if (err) {
+          console.log(err);
+        } else {
+          transport.sendMail({
+            from:    'iwantmap.com <no-reply@iwantmap.com>',
+            to:      email,
+            subject: 'Confirm email address',
+            html:    html,
+            text:    text
+          }, function(err, status) {
+            if (err) {
+              console.log(err);
+            } else {
+              console.log('Confirmation email to "'+email+'" sent: '+status.message);
+            }
+          });
+        }
+      });
+    });
+  },
+
 
   validateEmail: function(email) {
-    var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-    return re.test(email);
-  },
-
-  sendConfirmationEmail: function(user) {
-    var deferred = Q.defer();
-
-    var confirmLink = hostname + "confirm/" + user._id;
-
-    var options = {
-      from:    "iwantmap.com <no-reply@iwantmap.com>",
-      to:      user.e,
-      subject: "Confirm email address",
-      text:    "Welcome to iwantmap.com, click the link below to confirm your email address.\n" + confirmLink
-    };
-
-    smtp.sendMail(options, function(err, res){
-      if (err) {
-        console.warn(err);
-        deferred.reject();
-      } else {
-        console.log("Message sent to " + user.e + ": " + res.message);
-        deferred.resolve();
-      }
-    });
-
-    return deferred.promise;
-  },
-
-
-  //
-  //  sender is a email address
-  //  list is a db object
-  sendListEmails: function(senderEmail, list, receivers, resendFlag) {
-
-    var listUrl = hostname + list._id;
-    var options = {
-      from:    "iwantmap.com <no-reply@iwantmap.com>",
-      subject: list.name,
-      text:    senderEmail + " just shared a places list with you, check it out: " + listUrl
-    };
-    // 'to' field is defined later
-
-    for (var i = receivers.length - 1; i >= 0; i--) {
-      (function(receiver) {
-        options.to = receiver;
-        smtp.sendMail(options, function(err, res) {
-          if (err) console.warn(err);
-          else console.log("Message sent to " + receiver + ": " + res.message);
-        });
-      })(receivers[i]);
-    }
-
+    return EMAIL_REGEX.test(email);
   }
+
 
 };
