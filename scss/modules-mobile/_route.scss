@@ -1,0 +1,34 @@
+.md-route-container {}
+
+.md-route {
+  position: relative;
+  border-bottom: 1px solid $gray3;
+}
+
+.md-route-decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 40px;
+}
+
+.md-route-content {
+  list-style: none;
+  padding: 10px 10px 0 0;
+  margin: 0 0 0 40px;
+}
+
+
+// Item Style
+//
+.md-route-directions {
+  margin-bottom: 10px;
+}
+
+.md-route-directions-link {
+  display: inline-block;
+  background-color: $red;
+  color: #FFF;
+  padding: 10px;
+}

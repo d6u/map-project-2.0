@@ -1,0 +1,44 @@
+.md-place-container {
+  padding: 10px 10px 0;
+}
+
+.md-place-container-header {
+  margin: 0;
+  font-size: 16px;
+  margin-bottom: 10px;
+  font-style: italic;
+}
+
+.md-place-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.md-place-item {
+  background-color: $blue;
+  padding: 10px;
+  color: #FFF;
+  margin-bottom: 10px;
+}
+
+.md-place-name {
+  font-size: 18px;
+  line-height: 20px;
+  margin: 0 0 5px 0;
+}
+
+.md-place-address {
+  font-size: 14px;
+  margin: 0;
+  font-style: italic;
+}
+
+
+// Empty
+.md-place-container-empty-header {
+  font-style: 18px;
+  line-height: 1.3;
+  text-align: center;
+  font-weight: bold;
+}

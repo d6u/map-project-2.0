@@ -1,0 +1,66 @@
+doctype 5
+//if IEMobile 7
+  <html class="no-js iem7">
+//[if (gt IEMobile 7)|!(IEMobile)]><!
+html(class='no-js')
+  //<![endif]
+  head
+    meta(charset="utf-8")
+    title= title + ' | iwantmap'
+    meta(name="HandheldFriendly", content="True")
+    meta(name="MobileOptimized", content="320")
+    meta(name="viewport", content="width=device-width, initial-scale=1")
+    meta(http-equiv="cleartype", content="on")
+
+    link(rel='stylesheet', href='/css/bootstrap.min.css')
+    link(rel='stylesheet', href='/css/main-mobile.css')
+    script(src='/js/modernizr-2.6.2.min.js')
+  body
+
+    header.cp-toolbar
+      h1.cp-toolbar-title= title
+
+    - if (routes && routes.length)
+      div.md-route-container
+
+        - each route, i in routes
+          div.md-route
+
+            div.md-route-decoration
+              svg.md-route-decoration-connection-line(width="40", height="100%", id='js-route-connection-line-'+i)
+
+            ol.md-route-content
+              - each place in route
+                - if (place.directions)
+                  li.md-route-directions
+                    a.md-route-directions-link(href=place.url, target="_blank") Get directions
+                - else
+                  li.md-place-item.js-place-item(data-reference=place.reference)
+                    h2.md-place-name= place.name
+                    h3.md-place-address= place.address
+
+
+    - if (noRoutesPlaces && noRoutesPlaces.length)
+      div.md-place-container
+        h3.md-place-container-header Places that don't belong to any routes
+
+        ul.md-place-list
+          - each place in noRoutesPlaces
+            li.md-place-item(data-reference=place.reference)
+              h2.md-place-name= place.name
+              h3.md-place-address= place.address
+
+
+    - if (!routes && !noRoutesPlaces)
+      div.md-place-container
+        h3.md-place-container-empty-header Sorry, but I couldn't find any place in this list :(
+
+
+    script(src='//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js')
+    script(src='/js/snap.svg-min.js')
+    script(src='/js/main-mobile.js')
+    script.
+      //- var _gaq=[["_setAccount","UA-XXXXX-X"],["_trackPageview"]];
+      //- (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];g.async=1;
+      //- g.src=("https:"==location.protocol?"//ssl":"//www")+".google-analytics.com/ga.js";
+      //- s.parentNode.insertBefore(g,s)}(document,"script"));

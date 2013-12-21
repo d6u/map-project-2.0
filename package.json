@@ -12,7 +12,8 @@
     "mongodb": "*",
     "q": "*",
     "email-templates": "*",
-    "lodash": "*"
+    "lodash": "*",
+    "jade": "*"
   },
   "devDependencies": {
     "karma": "~0.10.7"
