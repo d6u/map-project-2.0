@@ -29,26 +29,31 @@ html(class='no-js')
             div.md-route-decoration
               svg.md-route-decoration-connection-line(width="40", height="100%", id='js-route-connection-line-'+i)
 
-
             ol.md-route-content
-
               - each place in route
                 - if (place.directions)
                   li.md-route-directions
                     a.md-route-directions-link(href=place.url, target="_blank") Get directions
                 - else
-                  li.md-route-place(data-reference=place.reference)
-                    h2.md-route-place-name= place.name
-                    h3.md-route-place-address= place.address
+                  li.md-place-item.js-place-item(data-reference=place.reference)
+                    h2.md-place-name= place.name
+                    h3.md-place-address= place.address
 
 
     - if (noRoutesPlaces && noRoutesPlaces.length)
       div.md-place-container
+        h3.md-place-container-header Places that don't belong to any routes
+
         ul.md-place-list
-          li.md-place-item
+          - each place in noRoutesPlaces
+            li.md-place-item(data-reference=place.reference)
+              h2.md-place-name= place.name
+              h3.md-place-address= place.address
 
 
     - if (!routes && !noRoutesPlaces)
+      div.md-place-container
+        h3.md-place-container-empty-header Sorry, but I couldn't find any place in this list :(
 
 
     script(src='//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js')
