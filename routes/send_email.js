@@ -1,3 +1,5 @@
+"use strict";
+
 
 var db       = require('../modules/db_helpers.js');
 var ObjectID = require('mongodb').ObjectID;
@@ -16,9 +18,9 @@ module.exports = function(req, res) {
 
         var sender = req.param('sender');
         if (req.param('self_only')) {
-          mailer.sendListEmails(sender, list, [sender], false);
+          mailer.sendListEmails(sender, list, [sender], {resend: false});
         } else {
-          mailer.sendListEmails(sender, list, req.param('receivers'), false);
+          mailer.sendListEmails(sender, list, req.param('receivers'), {resend: false});
         }
 
         res.send(200);

@@ -10,7 +10,9 @@
     "jade": "*",
     "nodemailer": "0.5.x",
     "mongodb": "*",
-    "q": "*"
+    "q": "*",
+    "email-templates": "*",
+    "lodash": "*"
   },
   "devDependencies": {
     "karma": "~0.10.7"
