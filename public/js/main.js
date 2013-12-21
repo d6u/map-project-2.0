@@ -338,7 +338,20 @@ app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces, $rootSc
         if (this.form.$valid) {
           if (!this.list.title) $rootScope.list.name = this.list.title = 'Untitled list';
           $http.post('/save_user', this.list).success(function(user) {
-            SavedPlaces.save({user: user});
+            var saved = SavedPlaces.save({user: user});
+
+            // if email already confirmed
+            // send email of this list to target email address after saving
+            if (user.c) {
+              saved.success(function(data) {
+                $http.post('/send_email', {
+                  self_only: true,
+                  sender:    user.e,
+                  list_id:   data._id
+                });
+              });
+            }
+
           });
           UI.hideAllModal();
         }
@@ -1074,6 +1087,7 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       options = options || {};
       var places = _.map(this.getPlaces(), function(p, i) {
         return {
+          id:            p.get('id'),
           order:         i,
           name:          p.get('name'),
           address:       p.get('formatted_address'),
@@ -1106,6 +1120,7 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
         var promise = $http.post('/save_list', {data: data})
         .success(function(data) {
           $location.path(data._id);
+          $rootScope.list = {name: data.name, _id: data._id};
           _this.enableAutoSave();
         });
       }
