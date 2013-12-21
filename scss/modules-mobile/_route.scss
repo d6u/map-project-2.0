@@ -1,0 +1,53 @@
+.md-route-container {}
+
+.md-route {
+  position: relative;
+  border-bottom: 1px solid $gray3;
+}
+
+.md-route-decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 40px;
+}
+
+.md-route-content {
+  list-style: none;
+  padding: 10px 10px 10px 0;
+  margin: 0 0 0 40px;
+}
+
+
+// Item Style
+//
+.md-route-place {
+  background-color: $blue;
+  padding: 10px;
+  color: #FFF;
+}
+
+.md-route-place-name {
+  font-size: 18px;
+  line-height: 20px;
+  margin: 0 0 5px 0;
+}
+
+.md-route-place-address {
+  font-size: 14px;
+  margin: 0;
+  font-style: italic;
+}
+
+.md-route-directions {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.md-route-directions-link {
+  display: inline-block;
+  background-color: $red;
+  color: #FFF;
+  padding: 10px;
+}
