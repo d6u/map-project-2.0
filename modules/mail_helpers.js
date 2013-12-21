@@ -5,7 +5,8 @@ var path           = require('path')
   , templatesDir   = path.resolve(__dirname, '..', 'email_templates')
   , emailTemplates = require('email-templates')
   , nodemailer     = require('nodemailer')
-  , EE             = new (require('events').EventEmitter);
+  , EE             = new (require('events').EventEmitter)
+  , _              = require('lodash');
 
 
 var hostname
@@ -47,6 +48,104 @@ function getTransport(callback) {
 }
 
 
+function generateDirectionLink(startCoord, destCoord) {
+  return "http://maps.google.com/?saddr="+startCoord+"&daddr="+destCoord+
+         "&directionsmode=driving";
+}
+
+
+function parseList(list) {
+  var locals = {id: list._id.toHexString(), name: list.name, places: list.places};
+  var routes = [];
+
+  if (list.places.length > 1) {
+    switch (list.mode) {
+      case 'linear':
+        routes[0] = [];
+        for (var i = 0; i < list.places.length - 1; i++) {
+          var st = list.places[i]
+            , ed = list.places[i+1];
+          var link = generateDirectionLink(st.location, ed.location);
+          routes[0].push({start: st, link: link});
+        }
+        routes[0].push({start: ed});
+        break;
+      case 'sunburst':
+        var st = list.places[0];
+        for (var i = 1; i < list.places.length; i++) {
+          var ed = list.places[i];
+          var link = generateDirectionLink(st.location, ed.location);
+          routes.push([
+            {start: st, link: link},
+            {start: ed}
+          ]);
+        }
+        break;
+      case 'sunburst-reverse':
+        var ed = list.places[list.places.length - 1];
+        for (var i = 0; i < list.places.length - 1; i++) {
+          var st = list.places[i];
+          var link = generateDirectionLink(st.location, ed.location);
+          routes.push([
+            {start: st, link: link},
+            {start: ed}
+          ]);
+        }
+        break;
+      case 'customized':
+        for (var i = 0; i < list.routes.length; i++) {
+          routes[i] = [];
+
+          var places = _.map(list.routes[i], function(id) {
+            return _.find(list.places, {id: id});
+          });
+
+          for (var j = 0; j < places.length - 1; j++) {
+            var st = places[j]
+              , ed = places[j+1];
+            var link = generateDirectionLink(st.location, ed.location);
+            routes[i].push({start: st, link: link});
+          }
+
+          routes[i].push({start: ed});
+        }
+        break;
+      case 'none': break;
+    }
+  }
+
+  locals.routes = routes;
+  return locals;
+}
+
+
+var Render = function(receiverEmail, locals, listName) {
+  this.locals = locals;
+  this.send = function(err, html, text) {
+    if (err) {
+      console.log(err);
+    } else {
+      transport.sendMail({
+        from:    'iwantmap.com <no-reply@iwantmap.com>',
+        to:      receiverEmail,
+        subject: listName,
+        html:    html
+        // text:    text
+      }, function(err, status) {
+        if (err) {
+          console.log(err);
+        } else {
+          console.log(status.message);
+        }
+      });
+    }
+  };
+  this.batch = function(batch) {
+    batch(this.locals, templatesDir, this.send);
+  };
+};
+
+
 // Module
 //
 module.exports = {
@@ -77,6 +176,31 @@ module.exports = {
           });
         }
       });
+    });
+  },
+
+
+  // senderEmail: (email String)
+  // list       : (list Object)
+  // receivers  : (receivers' email Array)
+  // options    : (Object: {})
+  //    resend: (Boolean: false) if true, will to user that is already received email
+  //
+  sendListEmails: function(senderEmail, list, receivers, options) {
+    options = options || {};
+    getTransport(function(transport) {
+
+      var locals = parseList(list);
+      locals.senderEmail = senderEmail;
+
+      // Load the template and send the emails
+      template('share_list', true, function(err, batch) {
+        for(var receiver in receivers) {
+          var render = new Render(receivers[receiver], locals, list.name);
+          render.batch(batch);
+        }
+      });
+
     });
   },
 
