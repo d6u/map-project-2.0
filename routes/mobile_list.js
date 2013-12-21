@@ -26,7 +26,6 @@ module.exports = function(req, res) {
             res.send(html);
         });
 
-
       } else {
         res.send(404, 'Sorry, this url doesn\'t belongs to anything.');
       }
@@ -80,12 +79,70 @@ function convertListToLinearRoutes(locals, list) {
 
 
 function convertListToSunburstRoutes(locals, list, reverse) {
-
+  var routes = [];
+  var places = list.places;
+  if (!reverse) {
+    var home = places[0];
+    for (var i = 1; i < places.length; i++) {
+      var route = [
+        home,
+        {
+          directions: true,
+          url: generateDirectionLink(home.location, places[i].location)
+        },
+        places[i]
+      ];
+      routes.push(route);
+    }
+  } else {
+    var dest = places[places.length - 1];
+    for (var i = 0; i < places.length - 1; i++) {
+      var route = [
+        places[i],
+        {
+          directions: true,
+          url: generateDirectionLink(places[i].location, dest.location)
+        },
+        dest
+      ];
+      routes.push(route);
+    }
+  }
+  locals.routes = routes;
+  return locals;
 }
 
 
 function convertListToCustomRoutes(locals, list) {
+  var routes = []
+    , places = list.places
+    , noRoutesPlaces = places.slice(0)
+    , listRoutes = list.routes;
 
+  for (var i = 0; i < listRoutes.length; i++) {
+    var route    = []
+      , prePlace = _.find(places, {id: listRoutes[i][0]});
+
+    route.push(prePlace);
+
+    for (var j = 1; j < listRoutes[i].length; j++) {
+      var place = _.find(places, {id: listRoutes[i][j]});
+      route.push({
+        directions: true,
+        url: generateDirectionLink(prePlace.location, place.location)
+      });
+      route.push(place);
+      prePlace = place;
+    }
+
+    routes.push(route);
+
+    noRoutesPlaces = _.without.apply(_, [noRoutesPlaces].concat(route));
+  }
+
+  locals.noRoutesPlaces = noRoutesPlaces;
+  locals.routes = routes;
+  return locals;
 }
 
 
