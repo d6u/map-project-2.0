@@ -573,6 +573,20 @@ app.factory('Map', ['BackboneEvents', function(BackboneEvents) {
       content.style.lineHeight = '18px';
       mouseoverInfoWindow.setContent(content);
       mouseoverInfoWindow.open(this.getMap(), marker);
+
+      // Fix infoWindow text wrap to next line and overflow issue in FireFox
+      // setTimeout to ensure content has inserted into infoWindow
+      setTimeout(function() {
+        // Find the parent that controls the width and increate its width by 1px
+        var p = $(content).closest('.gm-style-iw');
+        if (p) {
+          var w = /(\d+)px/i.exec(p.css('width'));
+          if (w) {
+            w = w[1];
+            p.css('width', w + 1);
+          }
+        }
+      });
     },
     closeMouseoverInfoWindow: function() {
       mouseoverInfoWindow.close();
