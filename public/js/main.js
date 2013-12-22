@@ -495,59 +495,24 @@ app.factory('Map', function(BackboneEvents) {
   var mapStyles = [
     {
       "featureType": "water",
+      "elementType": "geometry.fill",
       "stylers": [{
-        "color": "#46bcec"
+        "color": "#5D9CEC"
       }, {
         "visibility": "on"
-      }]
-    }, {
-      "featureType": "landscape",
-      "stylers": [{
-        "color": "#f2f2f2"
-      }]
-    }, {
-      "featureType": "road",
-      "stylers": [{
-        "saturation": -100
-      }, {
-        "lightness": 45
-      }]
-    }, {
-      "featureType": "road.highway",
-      "stylers": [{
-        "visibility": "simplified"
-      }]
-    }, {
-      "featureType": "road.arterial",
-      "elementType": "labels.icon",
-      "stylers": [{
-        "visibility": "off"
-      }]
-    }, {
-      "featureType": "administrative",
-      "elementType": "labels.text.fill",
-      "stylers": [{
-        "color": "#444444"
-      }]
-    }, {
-      "featureType": "transit",
-      "stylers": [{
-        "visibility": "off"
-      }]
-    }, {
-      "featureType": "poi",
-      "stylers": [{
-        "visibility": "off"
       }]
     }
   ];
 
   var defaultMapOptions = {
-    center:           new google.maps.LatLng(40.77, -73.98),
-    zoom:             10,
-    disableDefaultUI: true,
-    mapTypeId:        google.maps.MapTypeId.ROADMAP,
-    styles:           mapStyles
+    center:       new google.maps.LatLng(40.77, -73.98),
+    zoom:         5,
+    styles:       mapStyles,
+    panControl:   false,
+    scaleControl: true,
+    zoomControlOptions: {
+      position: google.maps.ControlPosition.RIGHT_CENTER
+    }
   };
 
   var Map = {
