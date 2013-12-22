@@ -5,11 +5,11 @@
 //
 var app = angular.module('mapApp', ['ngBackbone', 'ngAnimate', 'ngBootstrap']);
 
-app.config(function($locationProvider) {
+app.config(['$locationProvider', function($locationProvider) {
   $locationProvider.html5Mode(true);
-});
+}]);
 
-app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $http, Place, Route, $q, List) {
+app.run(['$rootScope', 'SavedPlaces', 'SearchedPlaces', 'Map', 'UI', '$location', '$http', 'Place', 'Route', '$q', 'List', function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $http, Place, Route, $q, List) {
   $rootScope.SavedPlaces    = SavedPlaces;
   $rootScope.SearchedPlaces = SearchedPlaces;
   $rootScope.Map = Map;
@@ -112,17 +112,17 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $h
     });
   }
 
-});
+}]);
 
 
 // --- Directives ---
 //
-app.directive('mdMapCanvas', function(Map) {
+app.directive('mdMapCanvas', ['Map', function(Map) {
   return function(scope, element) { Map.setCanvas(element[0]); };
-});
+}]);
 
 
-app.directive('mdInfoPanel', function(SearchedPlaces, SavedPlaces) {
+app.directive('mdInfoPanel', ['SearchedPlaces', 'SavedPlaces', function(SearchedPlaces, SavedPlaces) {
   return function(scope, element, attrs) {
     element.on('click', '#search-term-prediction', function() {
       var term = $(this).html();
@@ -130,10 +130,10 @@ app.directive('mdInfoPanel', function(SearchedPlaces, SavedPlaces) {
       SavedPlaces.resetInput(term);
     });
   };
-});
+}]);
 
 
-app.directive('mdSearchResult', function(Map, SearchedPlaces, SavedPlaces) {
+app.directive('mdSearchResult', ['Map', 'SearchedPlaces', 'SavedPlaces', function(Map, SearchedPlaces, SavedPlaces) {
   return {
     templateUrl: 'place-template',
     link: function(scope, element, attrs) {
@@ -157,10 +157,10 @@ app.directive('mdSearchResult', function(Map, SearchedPlaces, SavedPlaces) {
       });
     }
   }
-});
+}]);
 
 
-app.directive('mdPlace', function($compile, $templateCache, Map) {
+app.directive('mdPlace', ['$compile', '$templateCache', 'Map', function($compile, $templateCache, Map) {
   return function(scope, element, attrs) {
     element.html($compile($templateCache.get( scope.place._input ?
                                              'place-template-inputbox' :
@@ -169,13 +169,13 @@ app.directive('mdPlace', function($compile, $templateCache, Map) {
     scope.place._scope   = scope;
     if (!scope.place._input) scope.place.bindMouseoverInfowindowToElement();
   };
-});
+}]);
 
 
-app.directive('mdPlaceInput', function(SearchedPlaces, SavedPlaces) {
+app.directive('mdPlaceInput', ['SearchedPlaces', 'SavedPlaces', function(SearchedPlaces, SavedPlaces) {
   return {
     controllerAs: 'mdPlaceInputCtrl',
-    controller: function($scope, $element) {
+    controller: ['$scope', '$element', function($scope, $element) {
       var textarea = $element.children('.md-place-input-textarea');
       this.clearInput = function() {
         textarea.val('');
@@ -185,7 +185,7 @@ app.directive('mdPlaceInput', function(SearchedPlaces, SavedPlaces) {
         delete this.lastTerm;
         textarea.trigger('keyup');
       };
-    },
+    }],
     link: function(scope, element, attrs, Ctrl) {
       var textarea = element.children('.md-place-input-textarea');
       var shadow   = element.children('.md-place-input-shadow');
@@ -263,10 +263,10 @@ app.directive('mdPlaceInput', function(SearchedPlaces, SavedPlaces) {
       });
     }
   };
-});
+}]);
 
 
-app.directive('mdSortablePlaces', function(SavedPlaces, UI, $rootScope) {
+app.directive('mdSortablePlaces', ['SavedPlaces', 'UI', '$rootScope', function(SavedPlaces, UI, $rootScope) {
   return function(scope, element, attrs) {
     var contents;
     element.sortable({
@@ -311,10 +311,10 @@ app.directive('mdSortablePlaces', function(SavedPlaces, UI, $rootScope) {
       element.sortable('refresh');
     });
   }
-});
+}]);
 
 
-app.directive('mdDropZone', function($timeout, $rootScope) {
+app.directive('mdDropZone', ['$timeout', '$rootScope', function($timeout, $rootScope) {
   return {
     link: function(scope, element, attrs) {
       element.droppable({
@@ -326,13 +326,13 @@ app.directive('mdDropZone', function($timeout, $rootScope) {
       });
     }
   };
-});
+}]);
 
 
-app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces, $rootScope, List) {
+app.directive('mdSaveModal', ['$http', 'UI', '$location', 'SavedPlaces', '$rootScope', 'List', function($http, UI, $location, SavedPlaces, $rootScope, List) {
   return {
     controllerAs: 'MdSaveModalCtrl',
-    controller: function($scope) {
+    controller: ['$scope', function($scope) {
       // this.form
       this.list = {};
 
@@ -369,16 +369,16 @@ app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces, $rootSc
 
         }
       }
-    },
+    }],
     link: function(scope, element, attrs) {}
   };
-});
+}]);
 
 
-app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $http, SavedPlaces, $q, List) {
+app.directive('mdShareModal', ['$animate', 'UI', 'validateEmail', '$location', '$http', 'SavedPlaces', '$q', 'List', function($animate, UI, validateEmail, $location, $http, SavedPlaces, $q, List) {
   return {
     controllerAs: 'MdShareModalCtrl',
-    controller: function($scope) {
+    controller: ['$scope', function($scope) {
 
       this.list = {};
 
@@ -459,7 +459,7 @@ app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $
         }
       }
 
-    },
+    }],
     link: function(scope, element, attrs, Ctrl) {
 
       function bounceUpAnimation() {
@@ -500,12 +500,12 @@ app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $
 
     }
   };
-});
+}]);
 
 
 // --- Services ---
 //
-app.factory('Map', function(BackboneEvents) {
+app.factory('Map', ['BackboneEvents', function(BackboneEvents) {
   var mouseoverInfoWindow = new google.maps.InfoWindow({
     disableAutoPan: true
   });
@@ -699,7 +699,7 @@ app.factory('Map', function(BackboneEvents) {
 
 
   return Map;
-});
+}]);
 
 
 app.value('DirectionsService', new google.maps.DirectionsService);
@@ -708,7 +708,7 @@ app.value('DirectionsService', new google.maps.DirectionsService);
 app.value('PlacesAutocompleteService', new google.maps.places.AutocompleteService);
 
 
-app.factory('PlacesService', function(Map) {
+app.factory('PlacesService', ['Map', function(Map) {
   var service = {
     textSearch: function(query, callback) {
       this._placesService.textSearch(
@@ -724,10 +724,10 @@ app.factory('PlacesService', function(Map) {
     service._placesService = new google.maps.places.PlacesService(Map.getMap());
   });
   return service;
-});
+}]);
 
 
-app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
+app.factory('Place', ['Backbone', 'PlacesService', '$rootScope', 'Map', function(Backbone, PlacesService, $rootScope, Map) {
 
   function getMarkerIconUrl(collectionName) {
     return collectionName === 'SearchedPlaces' ?
@@ -898,10 +898,10 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
     }
 
   });
-});
+}]);
 
 
-app.factory('Route', function(Place, DirectionsRenderer) {
+app.factory('Route', ['Place', 'DirectionsRenderer', function(Place, DirectionsRenderer) {
 
   var Route = Backbone.Collection.extend({
 
@@ -986,10 +986,10 @@ app.factory('Route', function(Place, DirectionsRenderer) {
   });
 
   return Route;
-});
+}]);
 
 
-app.factory('SearchedPlaces', function($rootScope, Backbone, Place, Map, PlacesService, $q, PlacesAutocompleteService) {
+app.factory('SearchedPlaces', ['$rootScope', 'Backbone', 'Place', 'Map', 'PlacesService', '$q', 'PlacesAutocompleteService', function($rootScope, Backbone, Place, Map, PlacesService, $q, PlacesAutocompleteService) {
 
   var SearchedPlaces = Backbone.Collection.extend({
 
@@ -1046,10 +1046,10 @@ app.factory('SearchedPlaces', function($rootScope, Backbone, Place, Map, PlacesS
   });
 
   return new SearchedPlaces;
-});
+}]);
 
 
-app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $rootScope, UI, BackboneEvents, $http, List) {
+app.factory('SavedPlaces', ['Backbone', '$location', 'Route', 'Place', 'Map', '$rootScope', 'UI', 'BackboneEvents', '$http', 'List', function(Backbone, $location, Route, Place, Map, $rootScope, UI, BackboneEvents, $http, List) {
 
   var routes = [];
   var routeEditableListeners = [];
@@ -1312,10 +1312,10 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
   }
 
   return service;
-});
+}]);
 
 
-app.factory('DirectionsRenderer', function(Map, DirectionsService, BackboneEvents) {
+app.factory('DirectionsRenderer', ['Map', 'DirectionsService', 'BackboneEvents', function(Map, DirectionsService, BackboneEvents) {
 
   var colorCounter = 0;
   function randomColor() {
@@ -1420,7 +1420,7 @@ app.factory('DirectionsRenderer', function(Map, DirectionsService, BackboneEvent
   };
 
   return service;
-});
+}]);
 
 
 app.value('validateEmail', function(email) {
@@ -1429,7 +1429,7 @@ app.value('validateEmail', function(email) {
 });
 
 
-app.factory('UI', function($rootScope, $timeout) {
+app.factory('UI', ['$rootScope', '$timeout', function($rootScope, $timeout) {
   var UI = {
     showDropzone:   false,
     showShareModal: false,
@@ -1460,10 +1460,10 @@ app.factory('UI', function($rootScope, $timeout) {
   });
 
   return UI;
-});
+}]);
 
 
-app.factory('List', function(Backbone) {
+app.factory('List', ['Backbone', function(Backbone) {
   var List = Backbone.Model.extend({
     initialize: function() {
       this.set({title: 'iWantMap Project'});
@@ -1471,10 +1471,10 @@ app.factory('List', function(Backbone) {
   });
 
   return new List;
-});
+}]);
 
 
-app.filter('SearchedPlacesHintFilter', function($sce) {
+app.filter('SearchedPlacesHintFilter', ['$sce', function($sce) {
 
   function getHintText(text) {
     return 'Did you mean "<a href id="search-term-prediction">'+ text +'</a>"?';
@@ -1495,4 +1495,4 @@ app.filter('SearchedPlacesHintFilter', function($sce) {
       return $sce.trustAsHtml('');
     }
   };
-});
+}]);
