@@ -18,7 +18,11 @@ app.use(express.methodOverride());
 app.use(express.cookieParser('your secret here'));
 app.use(express.session());
 app.use(app.router);
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(
+  __dirname,
+  process.env.NODE_ENV === 'production' ? 'public_production' : 'public'
+)));
+
 
 // development only
 if ('development' == app.get('env')) {

@@ -8,11 +8,5 @@ tmp
 
 public/css/main.css
 public/css/main-mobile.css
-public/css/main.min.css
-public/css/main-mobile.min.css
 
-public/js/main.min.js
-public/js/main-animations.min.js
-public/js/main-mobile.min.js
-public/js/ng-backbone.min.js
-public/js/ng-bootstrap.min.js
+public_production
