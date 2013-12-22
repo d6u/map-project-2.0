@@ -1,0 +1,13 @@
+.md-modal {
+  &.share-mode {
+    min-height: 420px;
+  }
+
+  &.save-mode {
+    height: 338px;
+  }
+
+  &.save-mode-disabled {
+    height: 302px;
+  }
+}

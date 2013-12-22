@@ -1,3 +1,12 @@
 .DS_Store
-public/css/main.css
 node_modules
+.sass-cache
+.idea
+npm-debug.log
+
+tmp
+
+public/css/main.css
+public/css/main-mobile.css
+
+public_production

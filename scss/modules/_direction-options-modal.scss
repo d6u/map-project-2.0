@@ -1,23 +1,19 @@
 .md-direction-options-modal {
-  width: 900px;
+  width: 450px;
   background-color: #FFF;
 }
 
-.md-direction-modal-blocks {
+.md-direction-modal-body {
   overflow: hidden;
 }
 
 .md-direction-modal-option-block {
-  width: 300px;
-  height: 300px;
+  width: 150px;
+  height: 150px;
   float: left;
   background-color: $blueDark;
   @include transition();
-  &.active {
-    width: 300px;
-    height: 300px;
-    padding: 10px;
-  }
+  &.active { padding: 10px; }
 }
 
 .md-direction-modal-option-block-button {
@@ -28,33 +24,24 @@
   &:hover {
     background-color: saturate(lighten($blue, 23), 11);
   }
+  img {
+    height: 100%;
+    width: 100%;
+  }
 }
+
 
 .md-direction-modal-footer {
   height: 60px;
-  background-color: $gray3;
-}
-
-.md-direction-modal-footer-button {
-  float: right;
-  display: inline-block;
-  margin-top: 10px;
-  margin-right: 10px;
-  height: 40px;
-  line-height: 40px;
-  width: 100px;
-  text-align: center;
-  background-color: #FFF;
-  color: $gray6;
-  text-decoration: none;
-  &:hover {
-    color: $red;
-  }
+  padding: (60px - 34px) / 2;
+  line-height: 34px;
 }
 
 .md-direction-modal-footer-instruction {
   float: left;
-  line-height: 60px;
   font-size: 20px;
-  margin-left: 20px;
+}
+
+.md-direction-modal-footer-button {
+  float: right;
 }

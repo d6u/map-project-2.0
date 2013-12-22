@@ -1,0 +1,148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title><%= senderEmail %> shared a list with you</title>
+</head>
+<body yahoo bgcolor="#f6f8f1">
+
+<table width="100%" bgcolor="#f6f8f1" border="0" cellpadding="0" cellspacing="0">
+  <tr>
+    <td>
+      <!--[if (gte mso 9)|(IE)]>
+        <table width="600" align="center" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td>
+              <![endif]-->
+                <table bgcolor="#ffffff" class="content" align="center" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td bgcolor="#5d9cec" class="header">
+
+                      <!--[if (gte mso 9)|(IE)]>
+                        <table width="425" align="left" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td>
+                              <![endif]-->
+                                <table class="col425" align="left" border="0" cellpadding="0" cellspacing="0" style="width: 100%; max-width: 425px;">
+                                  <tr>
+                                    <td height="70">
+                                      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                        <tr>
+                                          <td class="subhead" style="padding: 0 0 0 3px;">
+                                            <%= senderEmail %> shared a list with you through iWantMap.com
+                                          </td>
+                                        </tr>
+                                        <tr>
+                                          <td class="h1" style="padding: 5px 0 0 0;">
+                                            <a href="http://iwantmap.com/<%= id %>" class="title-link"><%= name %></a>
+                                          </td>
+                                        </tr>
+                                      </table>
+                                    </td>
+                                  </tr>
+                                </table>
+                              <!--[if (gte mso 9)|(IE)]>
+                            </td>
+                          </tr>
+                        </table>
+                      <![endif]-->
+
+                    </td>
+                  </tr>
+
+                  <% for (var i = 0; i < places.length; i++) { %>
+                  <tr>
+                    <td class="innerpadding-place">
+                      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                        <tr>
+                          <td width="80" height="80" align="center" valign="top" style="padding: 0 20px 0 0;" >
+                            <table width="80" border="0" cellspacing="0" cellpadding="0" align="center">
+                              <tr>
+                                <td align="center">
+                                  <% if (places[i].cover_picture) { %>
+                                    <img src="<%= places[i].cover_picture %>" alt="image" align="center"/>
+                                  <% } %>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                          <td width="100%" valign="top">
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                              <tr>
+                                <td class="bodycopy">
+                                  <%= places[i].name %>
+                                </td>
+                              </tr>
+
+                              <tr>
+                                <td class="address">
+                                  <%= places[i].address %>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <% } %>
+
+                  <% for (var i = 0; i < routes.length; i++) { %>
+                    <tr>
+                      <td class="innerpadding borderbottom">
+                        <table border="0" cellpadding="0" cellspacing="0">
+                          <% for (var j = 0; j < routes[i].length; j++) { %>
+                            <tr>
+                              <td>
+                                <table>
+                                  <tr>
+                                    <td class="bodycopy"><%= routes[i][j].start.name %></td>
+                                  </tr>
+                                  <tr>
+                                    <td class="address"><%= routes[i][j].start.address %></td>
+                                  </tr>
+                                </table>
+                              </td>
+                            </tr>
+                            <% if (routes[i][j].link) { %>
+                              <tr>
+                                <td>
+                                  <table class="buttonwrapper" bgcolor="#e05443" border="0" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                      <td class="get-direction-button" height="30">
+                                        <a href="<%= routes[i][j].link %>">Get directions</a>
+                                      </td>
+                                    </tr>
+                                  </table>
+                                </td>
+                              </tr>
+                            <% } %>
+                          <% } %>
+                        </table>
+                      </td>
+                    </tr>
+                  <% } %>
+
+                  <tr>
+                    <td class="footer" bgcolor="#44525f">
+                      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                        <tr>
+                          <td align="center" class="footercopy">
+                            &reg; <a href="iwantmap.com">iWantMap.com</a> 2013<br/>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              <!--[if (gte mso 9)|(IE)]>
+            </td>
+          </tr>
+        </table>
+      <![endif]-->
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

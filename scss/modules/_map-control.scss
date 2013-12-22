@@ -8,12 +8,8 @@
   width: 40px;
   line-height: 40px;
   text-align: center;
-  @include transition();
-  color: #FFF;
-  &:hover {
-    color: $green;
-  }
-  &:active {
-    background-color: $gray5;
-  }
+  @include reset-anchor();
+  @include anchor-colors(#FFF, $green);
+
+  &:active { background-color: $gray5; }
 }

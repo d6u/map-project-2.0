@@ -24,20 +24,85 @@
   visibility: hidden;
   top: 0;
   left: 0;
-  z-index: 1000;
+  z-index: 1900;
   opacity: 0;
   background: rgba(0,0,0,.1);
   @include transition(all, 0.3s);
 }
 
 
-.cp-modal .cp-modal-content {
-  @include transition(all, 0.3s);
-  @include transform-scale(0.7);
-  opacity: 0;
+// scale-effect
+.cp-modal.scale-effect {
+  .cp-modal-content {
+    @include transition(all, 0.3s);
+    @include transform-scale(0.7);
+    opacity: 0;
+  }
+
+  &.show .cp-modal-content {
+    @include transform-scale();
+    opacity: 1;
+  }
 }
 
-.cp-modal.show .cp-modal-content {
-  @include transform-scale();
-  opacity: 1;
+
+// slide-up-effect
+.cp-modal.slide-up-effect {
+  .cp-modal-content {
+    @include transition(all, 400ms, cubic-bezier(0.215, 0.61, 0.355, 1));
+    @include transform-translate3d(0, 150%);
+    opacity: 0;
+  }
+
+  &.show .cp-modal-content {
+    @include transform-translate3d();
+    opacity: 1;
+  }
+}
+
+
+// bounce-up-effect
+.cp-modal .cp-modal-content {
+  &.bounce-up-effect-add {
+    @include transition(all, 400ms, cubic-bezier(.87,-0.44,.69,1));
+    @include transform-translate3d();
+    opacity: 0;
+  }
+
+  &.bounce-up-effect-add.bounce-up-effect-add-active,
+  &.bounce-up-effect {
+    @include transform-translate3d(0, -150%, 0);
+    opacity: 1;
+  }
+}
+
+
+// Contents style
+//
+.cp-modal-inner {
+  background-color: #FFF;
+  overflow: hidden;
+  width: 600px;
+  .help-block.error { color: $red; }
+}
+
+.cp-modal-header {
+  height: 60px;
+  padding: (60px - 34px) / 2;
+  font-size: 20px;
+  line-height: 34px;
+}
+
+.cp-modal-body {
+  padding: (60px - 34px) / 2;
+}
+
+.cp-modal-footer {
+  height: 60px;
+  padding: (60px - 34px) / 2;
+  line-height: 34px;
+}
+
+.cp-modal-footer-button {
+  &.right { float: right; }
 }

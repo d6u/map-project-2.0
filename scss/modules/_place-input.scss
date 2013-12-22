@@ -3,17 +3,16 @@
   z-index: 0;
 }
 
-$item-height: 40px;
 
 %md-place-input-text-style {
   width: 100%;
-  min-height: $item-height - 8px * 2;
+  min-height: $place-item-min-height;
   margin: 0;
-  padding: 8px 0;
-  border: 0;
+  padding: 8px 10px;
+  border: none;
   font-size: 18px;
   line-height: 24px;
-  font-family: 'Lucida Grande';
+  font-weight: normal;
 }
 
 .md-place-input-shadow {
@@ -39,6 +38,7 @@ $item-height: 40px;
     margin-bottom: -15px;
   }
 }
+
 
 .md-place-input-hint {
   position: absolute;

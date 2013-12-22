@@ -1,0 +1,82 @@
+.md-place-item {
+  background-color: #FFF;
+  border-bottom: 1px solid $blue;
+  list-style: none;
+}
+
+.md-place-inner {
+  position: relative;
+  overflow: hidden;
+  min-height: $place-item-min-height;
+}
+
+.md-place-body {}
+
+.md-place-details {
+  padding: 10px;
+  margin-right: 100px;
+}
+
+.md-place-name {
+  font-size: 18px;
+}
+
+.md-place-address {
+  font-size: 14px;
+  color: $gray5;
+  font-style: italic;
+  @include reset-element();
+  margin-bottom: 10px;
+}
+
+.md-place-url {
+  font-size: 14px;
+  color: $blue;
+}
+
+.md-place-picture {
+  float: right;
+  padding: 10px;
+  width: 100px;
+  height: 100px;
+  line-height: 80px;
+  text-align: center;
+  font-size: 0;
+
+  &::before {
+    content: '';
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+    margin-right: -0.25em; // Adjusts for spacing
+  }
+
+  img { vertical-align: middle; }
+  &.ng-hide ~ .md-place-details {
+    margin-right: 0;
+  }
+}
+
+
+.md-place-tail-label {
+  float: right;
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  font-size: 18px;
+  color: $blueDark;
+
+  ~ .md-place-body {
+    margin-right: 40px;
+  }
+}
+
+.md-place-item-sort-placeholder {}
+
+.ly-app > .md-place-item {
+  border: 1px solid $blue;
+  background-color: rgba(#FFF, 0.9);
+  // z-index is controlled in sortable options
+  // z-index: 2100; // > .ly-drop-zone
+}

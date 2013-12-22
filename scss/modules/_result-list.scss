@@ -1,0 +1,13 @@
+.md-result-list {
+  @include reset-element();
+  list-style: none;
+
+  .md-place-inner:hover {
+    cursor: pointer;
+    background-color: $gray2;
+  }
+
+  .md-place-item:last-of-type {
+    border-bottom: none;
+  }
+}

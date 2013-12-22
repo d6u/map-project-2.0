@@ -1,0 +1,33 @@
+.md-info-panel {
+  background-color: #FFF;
+  border: 1px solid $blue;
+  display: flex;
+  flex-direction: column;
+}
+
+.md-info-panel-header {
+  a { color: #FFF; }
+}
+
+.md-info-panel-header-content {
+  font-size: 18px;
+  padding: 10px;
+  background-color: $blue;
+  color: #FFF;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.md-info-panel-body {
+  flex-grow: 1;
+  position: relative;
+}
+
+.md-info-panel-body-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+}

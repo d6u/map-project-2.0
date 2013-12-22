@@ -1,0 +1,15 @@
+.md-info-panel {
+
+  &.ng-hide-add,
+  &.ng-hide-remove {
+    @include transition(all, 400ms);
+
+    display: block !important;
+    opacity: 1;
+  }
+
+  &.ng-hide {
+    opacity: 0;
+  }
+
+}
