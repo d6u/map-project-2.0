@@ -13,11 +13,14 @@ html(class='no-js')
     meta(http-equiv="cleartype", content="on")
 
     link(rel='stylesheet', href='/css/bootstrap.min.css')
+    link(rel="stylesheet", href="/css/font-awesome.min.css")
     link(rel='stylesheet', href='/css/main-mobile.css')
     script(src='/js/modernizr-2.6.2.min.js')
   body
 
     header.cp-toolbar
+      a.cp-toolbar-button.right(href="/help/mobile.html", target="_blank")
+        i.fa.fa-question-circle
       h1.cp-toolbar-title= title
 
     - if (routes && routes.length)
