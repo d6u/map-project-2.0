@@ -15,7 +15,7 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $h
   $rootScope.Map = Map;
   $rootScope.UI  = UI;
 
-  $rootScope.displayAllMarkers = function() {
+  $rootScope.displayAllMarkers = function(infoPanelShowed) {
     if (SavedPlaces.length > 1 || SearchedPlaces.length) {
       var bounds = new google.maps.LatLngBounds();
       SavedPlaces.forEach(function(p) {
@@ -24,7 +24,7 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $h
       SearchedPlaces.forEach(function(p) {
         bounds.extend(p.getPosition());
       });
-      Map.fitBounds(bounds);
+      Map.fitBounds(bounds, infoPanelShowed);
       if (Map.getZoom() > 9) Map.setZoom(9);
     }
   };
@@ -531,7 +531,19 @@ app.factory('Map', function(BackboneEvents) {
     setMap:    function(map)    { this._googleMap = map; },
     getMap:    function()       { return this._googleMap; },
     getBounds: function()       { return this.getMap().getBounds(); },
-    fitBounds: function(bounds) { this.getMap().fitBounds(bounds); },
+
+    // Improve fitBounds not to hide markers under info-panel
+    fitBounds: function(bounds, infoPanelShowed) {
+      if ( !$('[md-info-panel]').hasClass('ng-hide') || infoPanelShowed) {
+        var boundsPixels = getBoundsPixels(bounds);
+        var fittedBoundsPixels = getFittedBoundsPixels(boundsPixels);
+        var finalBounds = getFinalBounds(fittedBoundsPixels);
+        this.getMap().fitBounds(finalBounds);
+      } else {
+        this.getMap().fitBounds(bounds);
+      }
+    },
+
     getZoom:   function()       { return this.getMap().getZoom(); },
     setZoom:   function(level)  { return this.getMap().setZoom(level); },
     zoomIn: function() {
@@ -561,6 +573,118 @@ app.factory('Map', function(BackboneEvents) {
     }
   };
   _.extend(Map, BackboneEvents);
+
+
+  // Conver latLng coordinate to pixel coordinate on map
+  // source: https://developers.google.com/maps/documentation/javascript/examples/map-coordinates?csw=1
+  //
+  var TILE_SIZE = 256;
+
+  function bound(value, opt_min, opt_max) {
+    if (opt_min != null) value = Math.max(value, opt_min);
+    if (opt_max != null) value = Math.min(value, opt_max);
+    return value;
+  }
+
+  function degreesToRadians(deg) {
+    return deg * (Math.PI / 180);
+  }
+
+  function radiansToDegrees(rad) {
+    return rad / (Math.PI / 180);
+  }
+
+  function MercatorProjection() {
+    this.pixelOrigin_ = new google.maps.Point(TILE_SIZE / 2, TILE_SIZE / 2);
+    this.pixelsPerLonDegree_ = TILE_SIZE / 360;
+    this.pixelsPerLonRadian_ = TILE_SIZE / (2 * Math.PI);
+  }
+
+  MercatorProjection.prototype.fromLatLngToPoint = function(latLng, opt_point) {
+    var me = this;
+    var point = opt_point || new google.maps.Point(0, 0);
+    var origin = me.pixelOrigin_;
+
+    point.x = origin.x + latLng.lng() * me.pixelsPerLonDegree_;
+
+    // Truncating to 0.9999 effectively limits latitude to 89.189. This is
+    // about a third of a tile past the edge of the world tile.
+    var siny = bound(Math.sin(degreesToRadians(latLng.lat())), -0.9999, 0.9999);
+    point.y = origin.y + 0.5 * Math.log((1 + siny) / (1 - siny)) * -me.pixelsPerLonRadian_;
+    return point;
+  };
+
+  MercatorProjection.prototype.fromPointToLatLng = function(point) {
+    var me = this;
+    var origin = me.pixelOrigin_;
+    var lng = (point.x - origin.x) / me.pixelsPerLonDegree_;
+    var latRadians = (point.y - origin.y) / -me.pixelsPerLonRadian_;
+    var lat = radiansToDegrees(2 * Math.atan(Math.exp(latRadians)) - Math.PI / 2);
+    return new google.maps.LatLng(lat, lng);
+  };
+
+
+  // Functions to convert latLng coordinate to pixels coordinate and vice versa
+  function fromLatLngToPixel(latLng) {
+    var numTiles = 1 << Map.getZoom();
+    var projection = new MercatorProjection();
+    var worldCoordinate = projection.fromLatLngToPoint(latLng);
+
+    return {x: worldCoordinate.x * numTiles, y: worldCoordinate.y * numTiles};
+  }
+
+  // pixels: {x: Number, y: Number}
+  function fromPixelToLatLng(pixels) {
+    var numTiles = 1 << Map.getZoom();
+    var projection = new MercatorProjection();
+    var point = new google.maps.Point(pixels.x / numTiles, pixels.y / numTiles);
+
+    return projection.fromPointToLatLng(point);
+  }
+
+
+  function getBoundsPixels(bounds) {
+    var ne = fromLatLngToPixel(bounds.getNorthEast())
+      , sw = fromLatLngToPixel(bounds.getSouthWest());
+    return {ne: ne, sw: sw};
+  }
+
+  function getFittedBoundsPixels(boundsPixels) {
+    var mapCanvas = $('[md-map-canvas]');
+    var w = mapCanvas.width()
+      , h = mapCanvas.height();
+    var w1 = boundsPixels.ne.x - boundsPixels.sw.x
+      , h1 = boundsPixels.sw.y - boundsPixels.ne.y;
+
+    if (h / w > h1 / w1) {
+      var h_full  = w1 * h / w;
+      var h_extra = ( h_full - h1 ) / 2;
+      return {
+        sw: { x: boundsPixels.sw.x, y: boundsPixels.sw.y + h_extra },
+        ne: { x: boundsPixels.ne.x, y: boundsPixels.ne.y - h_extra }
+      };
+    } else {
+      var w_full  = h1 * w / h;
+      var w_extra = ( w_full - w1 ) / 2;
+      return {
+        sw: { x: boundsPixels.sw.x - w_extra, y: boundsPixels.sw.y },
+        ne: { x: boundsPixels.ne.x + w_extra, y: boundsPixels.ne.y }
+      };
+    }
+  }
+
+  function getFinalBounds(fittedBoundsPixels) {
+    var sw = fittedBoundsPixels.sw
+      , ne = fittedBoundsPixels.ne;
+    var w1 = ne.x - sw.x
+      , w  = $('[md-map-canvas]').width();
+    var x  = 370 * w1 / ( w - 370 );
+    var new_sw = { x: sw.x - x, y: sw.y };
+
+    return new google.maps.LatLngBounds(fromPixelToLatLng(new_sw),
+                                        fromPixelToLatLng(ne));
+  }
+
 
   return Map;
 });
@@ -894,7 +1018,7 @@ app.factory('SearchedPlaces', function($rootScope, Backbone, Place, Map, PlacesS
           if (status === google.maps.places.PlacesServiceStatus.OK) {
             _this.hint[0] = '';
             _this.set(result.splice(0, 8));
-            $rootScope.displayAllMarkers();
+            $rootScope.displayAllMarkers(true);
             deferred.resolve();
           } else {
             _this.hint[0] = "Sorry no result found.";
