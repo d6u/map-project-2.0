@@ -27,7 +27,7 @@
     <div class="ly-panel-toolbar cp-toolbar">
       <a href="/" target="_blank" class="cp-toolbar-button right" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Create a new list"><i class="fa fa-plus"></i></a>
       <a href class="cp-toolbar-button right" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Help"><i class="fa fa-question-circle"></i></a>
-      <h1 href class="cp-toolbar-title">{{list.name}}</h1>
+      <h1 href class="cp-toolbar-title">{{ List.get('title') }}</h1>
     </div>
 
     <div class="ly-map-canvas" md-map-canvas></div>
@@ -67,7 +67,7 @@
   <div class="ly-drop-zone md-drop-zone" md-drop-zone ng-show="UI.showDropzone"><i class="fa fa-trash-o"></i></div>
 
 
-  <!-- Modals -->
+  <!-- Directions Mode Modal -->
   <div class="cp-modal scale-effect" ng-class="{show: UI.showDirectionModal}">
     <div class="cp-modal-content">
       <div class="md-direction-options-modal">
@@ -110,6 +110,7 @@
     </div>
   </div>
 
+  <!-- Share Modal -->
   <div class="cp-modal slide-up-effect" ng-class="{show: UI.showShareModal}" md-share-modal>
     <div class="cp-modal-content">
 
@@ -119,7 +120,7 @@
           <div class="form-group">
             <label for="share-modal-email" class="col-sm-3 control-label">Your Email</label>
             <div class="col-sm-9">
-              <input type="email" class="form-control" id="share-modal-email" placeholder="your@email.com" required ng-model="MdShareModalCtrl.list.sender">
+              <input type="email" class="form-control" id="share-modal-email" placeholder="your@email.com" required name="sender" ng-model="MdShareModalCtrl.list.sender">
               <p class="help-block" ng-class="{error: MdShareModalCtrl.formHelp.senderHelpWarning}">{{ MdShareModalCtrl.formHelp.senderHelp }}</p>
             </div>
           </div>
@@ -150,10 +151,11 @@
     </div>
   </div>
 
+  <!-- Save Modal -->
   <div class="cp-modal slide-up-effect" ng-class="{show: UI.showSaveModal}" md-save-modal>
     <div class="cp-modal-content">
 
-      <form class="md-modal save-mode cp-modal-inner form-horizontal" name="MdSaveModalCtrl.form" ng-hide="list._id">
+      <form class="md-modal save-mode cp-modal-inner form-horizontal" name="MdSaveModalCtrl.form" ng-hide="List.has('_id')">
         <header class="cp-modal-header">Save your list of places</header>
         <div class="cp-modal-body">
           <div class="form-group">
@@ -181,7 +183,7 @@
       </form>
 
 
-      <div class="md-modal save-mode-disabled cp-modal-inner" ng-show="list._id">
+      <div class="md-modal save-mode-disabled cp-modal-inner" ng-show="List.has('_id')">
         <header class="cp-modal-header">Why can't I save?</header>
         <div class="cp-modal-body">
           <p class="lead">You have already saved your list to the server, all future changes will be automatically saved.</p>

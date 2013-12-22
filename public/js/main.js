@@ -9,11 +9,12 @@ app.config(function($locationProvider) {
   $locationProvider.html5Mode(true);
 });
 
-app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $http, Place, Route, $q) {
+app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $http, Place, Route, $q, List) {
   $rootScope.SavedPlaces    = SavedPlaces;
   $rootScope.SearchedPlaces = SearchedPlaces;
   $rootScope.Map = Map;
   $rootScope.UI  = UI;
+  $rootScope.List = List;
 
   $rootScope.displayAllMarkers = function(infoPanelShowed) {
     if (SavedPlaces.length > 1 || SearchedPlaces.length) {
@@ -52,7 +53,7 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $h
   } else {
     $http.get(path+'/data').success(function(data) {
 
-      $rootScope.list = {name: data.name, _id: data._id};
+      List.set({title: data.name, _id: data._id});
 
       // Load Data into SavedPlaces
       UI.directionMode = data.mode;
@@ -85,6 +86,8 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $h
 
         SavedPlaces.addInputModel({at: SavedPlaces.length});
         watchDirectionModeChange();
+
+        // prevent trigger auto save when `$watch` triggers once during init
         setTimeout(function() {
           if (data.mode === 'customized' && routes.length) {
             SavedPlaces.addRoute(routes);
@@ -92,13 +95,13 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $h
           SavedPlaces.enableAutoSave();
           $rootScope.displayAllMarkers();
         });
+
       });
 
     })
     .error(function() {
       $location.path('');
       SavedPlaces.addInputModel();
-      $rootScope.list = {name: 'iWantMap Project'};
     });
   }
 
@@ -326,7 +329,7 @@ app.directive('mdDropZone', function($timeout, $rootScope) {
 });
 
 
-app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces, $rootScope) {
+app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces, $rootScope, List) {
   return {
     controllerAs: 'MdSaveModalCtrl',
     controller: function($scope) {
@@ -334,30 +337,36 @@ app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces, $rootSc
       this.list = {};
 
       this.save = function() {
-        if (this.form.$valid && $location.path() != '/') {
-          SavedPlaces.save();
-          UI.hideAllModal();
-          return;
-        }
         if (this.form.$valid) {
-          if (!this.list.title) $rootScope.list.name = this.list.title = 'Untitled list';
-          $http.post('/save_user', this.list).success(function(user) {
-            var saved = SavedPlaces.save({user: user});
 
-            // if email already confirmed
-            // send email of this list to target email address after saving
-            if (user.c) {
-              saved.success(function(data) {
-                $http.post('/send_email', {
-                  self_only: true,
-                  sender:    user.e,
-                  list_id:   data._id
-                });
-              });
+          if (List.has('_id')) {
+            SavedPlaces.save();
+            UI.hideAllModal();
+          } else {
+            if (!this.list.title) {
+              List.set({title: 'Untitled list'});
             }
 
-          });
-          UI.hideAllModal();
+            $http.post('/save_user', this.list).success(function(user) {
+              var saved = SavedPlaces.save({user: user});
+
+              // if email already confirmed
+              // send email of this list to target email address after saving
+              if (user.c) {
+                saved.then(function(res) {
+                  $http.post('/send_email', {
+                    self_only: true,
+                    sender:    user.e,
+                    list_id:   res.data._id
+                  });
+                });
+              }
+            });
+
+            UI.hideAllModal();
+
+          }
+
         }
       }
     },
@@ -366,76 +375,92 @@ app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces, $rootSc
 });
 
 
-app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $http, SavedPlaces, $q) {
+app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $http, SavedPlaces, $q, List) {
   return {
     controllerAs: 'MdShareModalCtrl',
     controller: function($scope) {
 
-      this.save = function(options) {
-        options = options || {};
-        if (!options.selfOnly) {
-          if (typeof this.list.receivers === 'undefined') {
-            this.formHelp.receiversHelpWarning = true;
-            this.formHelp.receiversHelp = "Receivers cannot be empty";
-            return false;
-          } else {
-            this.list.receivers = this.list.receivers.replace(/\s*$/, '');
-            if (this.list.receivers.length === 0) {
-              this.formHelp.receiversHelpWarning = true;
-              this.formHelp.receiversHelp = "Receivers cannot be empty";
-              return false;
-            }
-          }
-          var receivers = this.list.receivers.split(/,\s*/g);
-          for (var i = 0; i < receivers.length; i++) {
-            if (!validateEmail(receivers[i])) {
-              this.formHelp.receiversHelpWarning = true;
-              this.formHelp.receiversHelp = '"'+receivers[i]+'" is not a valid email.';
-              return false;
-            }
-          }
-        }
+      this.list = {};
 
-        if (this.form.$valid) {
-          if ($location.path() === '/') {
-            var deferred = $q.defer();
-            if (!this.list.title) $rootScope.list.name = this.list.title = 'Untitled list';
-            $http.post(
-              '/save_user',
-              {
-                sender: this.list.sender,
-                title:  this.list.title
-              }
-            ).success(function(user) {
-              deferred.resolve(SavedPlaces.save({user: user}));
-            });
-            return deferred.promise;
-          } else {
-            return SavedPlaces.save();
-          }
-        } else {
-          this.formHelp.senderHelpWarning = true;
-          this.formHelp.senderHelp = "You have to enter your email.";
-          return false;
-        }
-      }
+      var _this = this;
 
-    },
-    link: function(scope, element, attrs, Ctrl) {
-
-      Ctrl.list = {};
-
-      function restoreFormHelp() {
-        Ctrl.formHelp = {
+      this.restoreFormHelp = function() {
+        this.formHelp = {
           senderHelp:       'We will send you a confirmation email first.',
           senderHelpWarning: false,
           receiversHelp:    "Separate receiver's email addresses by comma.",
           receiversHelpWarning: false
         }
       }
-      restoreFormHelp();
 
-      scope.$watch('list.name', function(val) { Ctrl.list.title = val; });
+      this.restoreFormHelp();
+
+      $scope.$watch(function() {return List.get('title');}, function(val) {
+        _this.list.title = val;
+      });
+
+      this.isValid = function(options) {
+        options = options || {};
+        var valid = true;
+
+        if (this.form.sender.$valid) {
+          this.formHelp.senderHelpWarning = false;
+          this.formHelp.senderHelp = "We will send you a confirmation email first.";
+        } else {
+          this.formHelp.senderHelpWarning = true;
+          this.formHelp.senderHelp = "Email is not valid";
+          valid = false;
+        }
+
+        if (!options.selfOnly) {
+
+          if (typeof this.list.receivers === 'undefined' ||
+              /^\s*$/.test(this.list.receivers)) {
+            this.formHelp.receiversHelpWarning = true;
+            this.formHelp.receiversHelp = "Receivers cannot be empty";
+            valid = false;
+          } else {
+            var receiversValid = true;
+            this.list.receivers = this.list.receivers.replace(/\s*$/, '');
+            var receivers = this.list.receivers.split(/,\s*/g);
+            for (var i = 0; i < receivers.length; i++) {
+              if (!validateEmail(receivers[i])) {
+                this.formHelp.receiversHelpWarning = true;
+                this.formHelp.receiversHelp = '"'+receivers[i]+'" is not a valid email.';
+                valid = false;
+                receiversValid = false;
+                break;
+              }
+            }
+            if (receiversValid) {
+              this.formHelp.receiversHelpWarning = false;
+              this.formHelp.receiversHelp = "Separate receiver's email addresses by comma.";
+            }
+          }
+
+        }
+
+        return valid;
+      }
+
+      this.save = function(options) {
+        this.list.title = this.list.title || 'Untitled list';
+        List.set({title: this.list.title});
+
+        if (List.has('_id')) {
+          return SavedPlaces.save();
+        } else {
+          $http.post('/save_user', {sender: this.list.sender,
+                                    title:  this.list.title})
+          .then(function(user) {
+            return SavedPlaces.save({user: user});
+          });
+
+        }
+      }
+
+    },
+    link: function(scope, element, attrs, Ctrl) {
 
       function bounceUpAnimation() {
         var child = element.children('.cp-modal-content');
@@ -448,41 +473,28 @@ app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $
       }
 
       Ctrl.sendToSender = function() {
-        var saved = Ctrl.save({selfOnly: true});
-        if (saved) {
-          saved.then(function() {
-            $http.post(
-              "/send_email",
-              {
-                self_only: true,
-                sender:    Ctrl.list.sender,
-                list_id:   scope.list._id
-              }
-            );
+        if (Ctrl.isValid({selfOnly: true})) {
+          Ctrl.save().then(function() {
+            $http.post("/send_email", {
+              self_only: true,
+              sender:    Ctrl.list.sender,
+              list_id:   List.get('_id')
+            });
           });
           bounceUpAnimation();
-          restoreFormHelp();
-        } else {
-          Ctrl.formHelp.senderHelpWarning = true;
-          Ctrl.formHelp.senderHelp = "You have to enter your email.";
         }
       };
 
       Ctrl.send = function() {
-        var saved = Ctrl.save();
-        if (saved) {
-          saved.then(function() {
-            $http.post(
-              "/send_email",
-              {
-                sender:    Ctrl.list.sender,
-                list_id:   scope.list._id,
-                receivers: Ctrl.list.receivers.split(/,\s*/g)
-              }
-            );
+        if (Ctrl.isValid()) {
+          Ctrl.save().then(function() {
+            $http.post("/send_email", {
+              sender:    Ctrl.list.sender,
+              list_id:   List.get('_id'),
+              receivers: Ctrl.list.receivers.split(/,\s*/g)
+            });
           });
           bounceUpAnimation();
-          restoreFormHelp();
         }
       };
 
@@ -1037,7 +1049,7 @@ app.factory('SearchedPlaces', function($rootScope, Backbone, Place, Map, PlacesS
 });
 
 
-app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $rootScope, UI, BackboneEvents, $http) {
+app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $rootScope, UI, BackboneEvents, $http, List) {
 
   var routes = [];
   var routeEditableListeners = [];
@@ -1201,12 +1213,12 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       });
 
       var data = {
-        name:     $rootScope.list.name,
+        name:     List.get('title'),
         mode:     UI.directionMode,
-        owner_id: options.user && $location.path() != '/' ? options.user._id : null,
-        // shared:   [],
         places:   places
       };
+
+      if (options.user) data.owner_id = options.user._id;
 
       if (UI.directionMode === 'customized') {
         data.routes = _.map(routes, function(r) {
@@ -1223,7 +1235,7 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
         var promise = $http.post('/save_list', {data: data})
         .success(function(data) {
           $location.path(data._id);
-          $rootScope.list = {name: data.name, _id: data._id};
+          List.set({name: data.name, _id: data._id});
           _this.enableAutoSave();
         });
       }
@@ -1432,6 +1444,17 @@ app.value('UI', {
 });
 
 
+app.factory('List', function(Backbone) {
+  var List = Backbone.Model.extend({
+    initialize: function() {
+      this.set({title: 'iWantMap Project'});
+    }
+  });
+
+  return new List;
+});
+
+
 app.filter('SearchedPlacesHintFilter', function($sce) {
 
   function getHintText(text) {
@@ -1442,7 +1465,7 @@ app.filter('SearchedPlacesHintFilter', function($sce) {
     if (input[0] || input[1]) {
       input.show = true;
       if (input[0] && input[1]) {
-        return $sce.trustAsHtml(input[0] + getHintText(input[1]));
+        return $sce.trustAsHtml(input[0] + ' ' + getHintText(input[1]));
       } else if (input[0]) {
         return $sce.trustAsHtml(input[0]);
       } else {
