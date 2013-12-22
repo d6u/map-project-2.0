@@ -143,6 +143,8 @@ app.directive('mdSearchResult', function(Map, SearchedPlaces, SavedPlaces) {
           var place = scope.place;
           scope.$apply(function() {
             SearchedPlaces.remove(place);
+            SearchedPlaces.reset();
+            SearchedPlaces.hint = [];
             var inputModel = SavedPlaces.find('_input');
             var index = SavedPlaces.indexOf(inputModel);
             SavedPlaces.add(place, {at: index});
@@ -223,6 +225,8 @@ app.directive('mdPlaceInput', function(SearchedPlaces, SavedPlaces) {
         if ( SearchedPlaces.length ) {
           var place = SearchedPlaces.at(0);
           SearchedPlaces.remove(place);
+          SearchedPlaces.reset();
+          SearchedPlaces.hint = [];
           var inputModel = SavedPlaces.find('_input');
           var index = SavedPlaces.indexOf(inputModel);
           SavedPlaces.add(place, {at: index});
@@ -490,7 +494,9 @@ app.directive('mdShareModal', function($animate, UI, validateEmail, $location, $
 // --- Services ---
 //
 app.factory('Map', function(BackboneEvents) {
-  var mouseoverInfoWindow = new google.maps.InfoWindow();
+  var mouseoverInfoWindow = new google.maps.InfoWindow({
+    disableAutoPan: true
+  });
 
   var mapStyles = [
     {
@@ -625,6 +631,8 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
             _this.getCoverPhoto();
             _this.enter('attrsFetched');
           });
+        } else if (status === google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
+          setTimeout(function() { _this.getDetails(); }, 1000);
         }
       });
     },
@@ -673,7 +681,10 @@ app.factory('Place', function(Backbone, PlacesService, $rootScope, Map) {
       });
     },
     getMarker: function() { return this._marker; },
-    getPosition: function() { return this.getMarker().getPosition(); },
+    getPosition: function() {
+      var marker = this.getMarker();
+      return marker ? marker.getPosition() : this.get('geometry').location;
+    },
 
     // View
     //
@@ -882,7 +893,8 @@ app.factory('SearchedPlaces', function($rootScope, Backbone, Place, Map, PlacesS
         $rootScope.$apply(function() {
           if (status === google.maps.places.PlacesServiceStatus.OK) {
             _this.hint[0] = '';
-            _this.set(result.splice(0, 5));
+            _this.set(result.splice(0, 8));
+            $rootScope.displayAllMarkers();
             deferred.resolve();
           } else {
             _this.hint[0] = "Sorry no result found.";
@@ -947,6 +959,8 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
         }
         $el.trigger('keyup');
       }
+
+      $el.focus();
     },
 
     // Place Management
