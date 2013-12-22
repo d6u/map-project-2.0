@@ -1319,7 +1319,7 @@ app.factory('DirectionsRenderer', ['Map', 'DirectionsService', 'BackboneEvents',
 
   var colorCounter = 0;
   function randomColor() {
-    var colors = ['1f77b4', 'ff7f0e', '2ca02c', 'd62728', '9467bd', '8c564b', 'e377c2', 'bcbd22', '17becf'];
+    var colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#bcbd22', '#17becf'];
     var color  = colors[colorCounter++];
     if (!color) {
       colorCounter = 0;
