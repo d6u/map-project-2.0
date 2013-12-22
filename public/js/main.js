@@ -329,7 +329,7 @@ app.directive('mdDropZone', function($timeout, $rootScope) {
 });
 
 
-app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces, $rootScope) {
+app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces, $rootScope, List) {
   return {
     controllerAs: 'MdSaveModalCtrl',
     controller: function($scope) {
@@ -337,30 +337,36 @@ app.directive('mdSaveModal', function($http, UI, $location, SavedPlaces, $rootSc
       this.list = {};
 
       this.save = function() {
-        if (this.form.$valid && $location.path() != '/') {
-          SavedPlaces.save();
-          UI.hideAllModal();
-          return;
-        }
         if (this.form.$valid) {
-          if (!this.list.title) $rootScope.list.name = this.list.title = 'Untitled list';
-          $http.post('/save_user', this.list).success(function(user) {
-            var saved = SavedPlaces.save({user: user});
 
-            // if email already confirmed
-            // send email of this list to target email address after saving
-            if (user.c) {
-              saved.success(function(data) {
-                $http.post('/send_email', {
-                  self_only: true,
-                  sender:    user.e,
-                  list_id:   data._id
-                });
-              });
+          if (List.has('_id')) {
+            SavedPlaces.save();
+            UI.hideAllModal();
+          } else {
+            if (!this.list.title) {
+              List.set({title: 'Untitled list'});
             }
 
-          });
-          UI.hideAllModal();
+            $http.post('/save_user', this.list).success(function(user) {
+              var saved = SavedPlaces.save({user: user});
+
+              // if email already confirmed
+              // send email of this list to target email address after saving
+              if (user.c) {
+                saved.then(function(res) {
+                  $http.post('/send_email', {
+                    self_only: true,
+                    sender:    user.e,
+                    list_id:   res.data._id
+                  });
+                });
+              }
+            });
+
+            UI.hideAllModal();
+
+          }
+
         }
       }
     },
@@ -1206,10 +1212,10 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       var data = {
         name:     List.get('title'),
         mode:     UI.directionMode,
-        owner_id: (options.user && $location.path() != '/') ? options.user._id : null,
-        // shared:   [],
         places:   places
       };
+
+      if (options.user) data.owner_id = options.user._id;
 
       if (UI.directionMode === 'customized') {
         data.routes = _.map(routes, function(r) {
@@ -1456,7 +1462,7 @@ app.filter('SearchedPlacesHintFilter', function($sce) {
     if (input[0] || input[1]) {
       input.show = true;
       if (input[0] && input[1]) {
-        return $sce.trustAsHtml(input[0] + getHintText(input[1]));
+        return $sce.trustAsHtml(input[0] + ' ' + getHintText(input[1]));
       } else if (input[0]) {
         return $sce.trustAsHtml(input[0]);
       } else {

@@ -15,6 +15,7 @@ module.exports = function(req, res) {
 
   var users = db.getDb().collection('users');
   var userCursor = users.find({e: sender}, {limit: 1});
+
   userCursor.toArray(function(err, docs) {
     var user = docs[0];
     if (user) {
