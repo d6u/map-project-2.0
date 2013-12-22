@@ -19,8 +19,12 @@
 }
 
 .cp-toolbar-title {
+  margin-left: 5px;
   font-size: 22px;
   text-align: center;
   line-height: $toolbar-height;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   @include reset-element();
 }

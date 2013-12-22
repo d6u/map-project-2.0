@@ -92,3 +92,13 @@ html, body, .ly-app {
   width: $panel-width;
   z-index: 2000; // > .ly-info-panel
 }
+
+
+// Guide Window
+//
+.ly-guide-window {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  z-index: 1500;
+}

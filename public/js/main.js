@@ -1429,18 +1429,37 @@ app.value('validateEmail', function(email) {
 });
 
 
-app.value('UI', {
-  showDropzone:   false,
-  showShareModal: false,
-  showSaveModal:  false,
-  directionMode:  'none',
-  showDirectionModal: false,
+app.factory('UI', function($rootScope, $timeout) {
+  var UI = {
+    showDropzone:   false,
+    showShareModal: false,
+    showSaveModal:  false,
+    directionMode:  'none',
+    showDirectionModal: false,
+    showGuideWindow: false,
 
-  hideAllModal: function() {
-    this.showDirectionModal = false;
-    this.showShareModal     = false;
-    this.showSaveModal      = false
-  }
+    hideAllModal: function() {
+      this.showDirectionModal = false;
+      this.showShareModal     = false;
+      this.showSaveModal      = false
+    },
+
+    briefShowGuideWindow: function() {
+      var _this = this;
+      this.showGuideWindow = true;
+      $timeout(function() {
+        _this.showGuideWindow = false;
+      }, 3000);
+    }
+  };
+
+  $rootScope.$watch(function() {
+    return UI.directionMode;
+  }, function(val) {
+    if (val === 'customized') UI.briefShowGuideWindow();
+  });
+
+  return UI;
 });
 
 

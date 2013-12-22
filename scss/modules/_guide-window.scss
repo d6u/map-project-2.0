@@ -1,0 +1,18 @@
+.md-guide-window {
+
+  &.ng-hide-add,
+  &.ng-hide-remove {
+    @include transition();
+    display: block !important;
+    opacity: 1;
+  }
+
+  &.ng-hide {
+    opacity: 0;
+  }
+
+}
+
+.md-guide-window-image {
+  opacity: .8;
+}
