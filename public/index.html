@@ -120,7 +120,7 @@
           <div class="form-group">
             <label for="share-modal-email" class="col-sm-3 control-label">Your Email</label>
             <div class="col-sm-9">
-              <input type="email" class="form-control" id="share-modal-email" placeholder="your@email.com" required ng-model="MdShareModalCtrl.list.sender">
+              <input type="email" class="form-control" id="share-modal-email" placeholder="your@email.com" required name="sender" ng-model="MdShareModalCtrl.list.sender">
               <p class="help-block" ng-class="{error: MdShareModalCtrl.formHelp.senderHelpWarning}">{{ MdShareModalCtrl.formHelp.senderHelp }}</p>
             </div>
           </div>
