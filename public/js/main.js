@@ -9,11 +9,12 @@ app.config(function($locationProvider) {
   $locationProvider.html5Mode(true);
 });
 
-app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $http, Place, Route, $q) {
+app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $http, Place, Route, $q, List) {
   $rootScope.SavedPlaces    = SavedPlaces;
   $rootScope.SearchedPlaces = SearchedPlaces;
   $rootScope.Map = Map;
   $rootScope.UI  = UI;
+  $rootScope.List = List;
 
   $rootScope.displayAllMarkers = function(infoPanelShowed) {
     if (SavedPlaces.length > 1 || SearchedPlaces.length) {
@@ -52,7 +53,7 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $h
   } else {
     $http.get(path+'/data').success(function(data) {
 
-      $rootScope.list = {name: data.name, _id: data._id};
+      List.set({title: data.name, _id: data._id});
 
       // Load Data into SavedPlaces
       UI.directionMode = data.mode;
@@ -85,6 +86,8 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $h
 
         SavedPlaces.addInputModel({at: SavedPlaces.length});
         watchDirectionModeChange();
+
+        // prevent trigger auto save when `$watch` triggers once during init
         setTimeout(function() {
           if (data.mode === 'customized' && routes.length) {
             SavedPlaces.addRoute(routes);
@@ -92,13 +95,13 @@ app.run(function($rootScope, SavedPlaces, SearchedPlaces, Map, UI, $location, $h
           SavedPlaces.enableAutoSave();
           $rootScope.displayAllMarkers();
         });
+
       });
 
     })
     .error(function() {
       $location.path('');
       SavedPlaces.addInputModel();
-      $rootScope.list = {name: 'iWantMap Project'};
     });
   }
 
@@ -1037,7 +1040,7 @@ app.factory('SearchedPlaces', function($rootScope, Backbone, Place, Map, PlacesS
 });
 
 
-app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $rootScope, UI, BackboneEvents, $http) {
+app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $rootScope, UI, BackboneEvents, $http, List) {
 
   var routes = [];
   var routeEditableListeners = [];
@@ -1201,9 +1204,9 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
       });
 
       var data = {
-        name:     $rootScope.list.name,
+        name:     List.get('title'),
         mode:     UI.directionMode,
-        owner_id: options.user && $location.path() != '/' ? options.user._id : null,
+        owner_id: (options.user && $location.path() != '/') ? options.user._id : null,
         // shared:   [],
         places:   places
       };
@@ -1223,7 +1226,7 @@ app.factory('SavedPlaces', function(Backbone, $location, Route, Place, Map, $roo
         var promise = $http.post('/save_list', {data: data})
         .success(function(data) {
           $location.path(data._id);
-          $rootScope.list = {name: data.name, _id: data._id};
+          List.set({name: data.name, _id: data._id});
           _this.enableAutoSave();
         });
       }
@@ -1429,6 +1432,17 @@ app.value('UI', {
     this.showShareModal     = false;
     this.showSaveModal      = false
   }
+});
+
+
+app.factory('List', function(Backbone) {
+  var List = Backbone.Model.extend({
+    initialize: function() {
+      this.set({title: 'iWantMap Project'});
+    }
+  });
+
+  return new List;
 });
 
 
