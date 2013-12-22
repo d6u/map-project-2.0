@@ -12,10 +12,14 @@
     "mongodb": "*",
     "q": "*",
     "email-templates": "*",
-    "lodash": "*",
-    "jade": "*"
+    "lodash": "*"
   },
   "devDependencies": {
-    "karma": "~0.10.7"
+    "karma": "~0.10.7",
+    "grunt": "~0.4.2",
+    "grunt-autoprefixer": "~0.5.0",
+    "grunt-contrib-uglify": "~0.2.7",
+    "grunt-contrib-sass": "~0.6.0",
+    "grunt-contrib-cssmin": "~0.7.0"
   }
 }
