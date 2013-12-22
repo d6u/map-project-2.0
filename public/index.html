@@ -26,7 +26,7 @@
   <div class="ly-map-panel">
     <div class="ly-panel-toolbar cp-toolbar">
       <a href="/" target="_blank" class="cp-toolbar-button right" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Create a new list"><i class="fa fa-plus"></i></a>
-      <a href class="cp-toolbar-button right" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Help"><i class="fa fa-question-circle"></i></a>
+      <a href class="cp-toolbar-button right" ng-click="UI.briefShowGuideWindow()" ng-show="UI.directionMode === 'customized'" bs-tooltip bs-tooltip-placement="bottom" bs-tooltip-title="Help"><i class="fa fa-question-circle"></i></a>
       <h1 href class="cp-toolbar-title">{{ List.get('title') }}</h1>
     </div>
 
@@ -65,6 +65,12 @@
 
   <!-- Drop Zone -->
   <div class="ly-drop-zone md-drop-zone" md-drop-zone ng-show="UI.showDropzone"><i class="fa fa-trash-o"></i></div>
+
+
+  <!-- Guide Window -->
+  <div class="ly-guide-window md-guide-window" md-heads-up-guide ng-show="UI.showGuideWindow">
+    <img class="md-guide-window-image" src="/img/custom-routes-guide.gif" alt="Drag from one marker to another to create routes">
+  </div>
 
 
   <!-- Directions Mode Modal -->
