@@ -1,22 +1,24 @@
+'use strict';
 
-var MongoClient = require('mongodb').MongoClient;
-var ObjectID    = require('mongodb').ObjectID;
-var db, lists, users;
+const config = require('config');
+const MongoClient = require('mongodb').MongoClient;
+const ObjectID = require('mongodb').ObjectID;
 
+let db;
+let lists;
+let users;
 
-MongoClient.connect(
-  'mongodb://127.0.0.1:27017/iwantmap',
-  function(err, database) {
-    if(err) throw err;
-    db    = database;
-    users = db.collection('users');
-    lists = db.collection('lists');
-  }
-);
-
+MongoClient.connect(config.get('mongoConnection'), function(err, database) {
+  if(err) throw err;
+  db = database;
+  users = db.collection('users');
+  lists = db.collection('lists');
+});
 
 module.exports = {
-  getDb:      function() { return db; },
+  getDb: function () {
+    return db;
+  },
 
   // email:    string
   // callback: called with user as argument

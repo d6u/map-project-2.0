@@ -1,47 +1,44 @@
+const http = require('http');
+const path = require('path');
+const express = require('express');
+const config = require('config');
+const morgan  = require('morgan');
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
 
-var express = require('express');
-var http    = require('http');
-var path    = require('path');
+const ENV = process.env.NODE_ENV || 'development';
 
-var app = express();
+const app = express();
 
-// all environments
-app.set('port', process.env.PORT || 3000);
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 app.set('view options', {layout: false});
-app.use(express.favicon());
-app.use(express.logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded());
-app.use(express.methodOverride());
-app.use(express.cookieParser('your secret here'));
-app.use(express.session());
-app.use(app.router);
-app.use(express.static(path.join(
-  __dirname,
-  process.env.NODE_ENV === 'production' ? 'public_production' : 'public'
-)));
+app.use(morgan('dev'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieParser());
+app.use(session({
+  resave: false,
+  saveUninitialized: false,
+  secret: 'a random secret'
+}));
+app.use(express.static('public'));
 
-
-// development only
-if ('development' == app.get('env')) {
-  app.use(express.errorHandler());
+if (ENV === 'development') {
+  app.use(require('errorhandler')());
 }
 
+app.post('/save_user', require('./routes/save_user.js'));
+app.post('/save_list', require('./routes/save_list.js'));
+app.post('/send_email', require('./routes/send_email.js'));
+app.get('/confirm/:user_id', require('./routes/confirm_email.js'));
+app.get('/mobile/:list_id', require('./routes/mobile_list.js'));
+app.post('/:list_id', require('./routes/save_list.js'));
+app.get('/:list_id', require('./routes/index.js'));
+app.get('/:list_id/data', require('./routes/get_list.js'));
 
-// Routes
-//
-app.post('/save_user'    , require('./routes/save_user.js'));
-app.post('/save_list'    , require('./routes/save_list.js'));
-app.post('/send_email'   , require('./routes/send_email.js'));
-app.get( '/confirm/:user_id', require('./routes/confirm_email.js'));
-app.get( '/mobile/:list_id' , require('./routes/mobile_list.js'));
-app.post('/:list_id'     , require('./routes/save_list.js'));
-app.get( '/:list_id'     , require('./routes/index.js'));
-app.get( '/:list_id/data', require('./routes/get_list.js'));
-
-
-http.createServer(app).listen(app.get('port'), function() {
-  console.log('Express server listening on port ' + app.get('port'));
-});
+http.createServer(app)
+  .listen(config.get('port'), function () {
+    console.log('Express server listening on port ' + config.get('port'));
+  });
